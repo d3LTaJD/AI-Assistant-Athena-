@@ -1,0 +1,25 @@
+pyttsx3
+datetime
+speechrecognition
+pyaudio
+pyautogui
+wikipedia
+pywhatkit
+requests
+newsapi-python
+clipboard
+pyjokes
+spacy
+nltk
+openai
+selenium
+pyscreeze
+click
+mysql-connector-python
+
+
+# You should also run:
+
+python -m nltk.downloader punkt
+python -m spacy download en_core_web_sm
+
