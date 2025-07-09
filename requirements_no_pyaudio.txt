@@ -1,0 +1,10 @@
+# Core dependencies (no PyAudio)
+pyttsx3==2.90
+requests==2.31.0
+numpy==1.24.3
+Pillow==10.1.0
+
+# Optional dependencies (install if needed)
+# pyautogui==0.9.54  # For screenshots
+# openai==0.28.1  # For AI image and code generation
+# psutil==5.9.6  # For system monitoring
