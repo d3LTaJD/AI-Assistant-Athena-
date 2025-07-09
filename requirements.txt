@@ -1,25 +1,23 @@
-pyttsx3
-datetime
-speechrecognition
-pyaudio
-pyautogui
-wikipedia
-pywhatkit
-requests
-newsapi-python
-clipboard
-pyjokes
-spacy
-nltk
-openai
-selenium
-pyscreeze
-click
-mysql-connector-python
+pyttsx3==2.90
+SpeechRecognition==3.10.0
+pyaudio==0.2.11
+pyautogui==0.9.54
+wikipedia==1.4.0
+pywhatkit==5.4
+requests==2.31.0
+newsapi-python==0.2.6
+clipboard==0.0.4
+pyjokes==0.6.0
+spacy==3.7.2
+nltk==3.8.1
+openai==0.28.1
+selenium==4.15.2
+pyscreeze==0.1.29
+click==8.1.7
+mysql-connector-python==8.2.0
+pygame==2.5.2
+edge-tts==6.1.9
 
-
-# You should also run:
-
-python -m nltk.downloader punkt
-python -m spacy download en_core_web_sm
-
+# After installing requirements, run these commands:
+# python -m nltk.downloader punkt
+# python -m spacy download en_core_web_sm

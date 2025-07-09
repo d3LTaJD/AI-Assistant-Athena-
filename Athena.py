@@ -1,11 +1,11 @@
-from asyncio import tasks
+"""
+Athena AI Assistant - Main Application
+Fixed version with proper error handling and imports
+"""
+
 import random
 import string
-import smtplibs
-from urllib import response
-from click import command
-from pyscreeze import screenshot
-import pyttsx3
+import smtplib  # Fixed typo from smtplibs
 import datetime
 import speech_recognition as sr
 from secrets_1 import senderemail, epwd, to 
@@ -21,28 +21,31 @@ import clipboard
 import os
 import pyjokes
 import spacy
-from nltk.tokenize import word_tokenize
 from Athenavoice import speak
 import openai
-import serial  
-import pyaudio
-from selenium import webdriver
-from selenium.webdriver.common.keys import Keys
 import mysql.connector
+from config import OPENAI_API_KEY, NEWS_API_KEY, WEATHER_API_KEY, DB_CONFIG, SCREENSHOT_FOLDER
 
+# Global database connection variables
+mydb = None
+mycursor = None
 
-API_KEY = ""
-
-
-openai.api_key = ""  # Replace with your actual API key
+# Set OpenAI API key
+openai.api_key = OPENAI_API_KEY
 
 def chat_with_gpt(user_input):
     """Handles chat interaction using OpenAI's latest API format."""
+    if not OPENAI_API_KEY:
+        speak("OpenAI API key is not configured. Please add your API key to config.py")
+        return
+        
     try:
         response = openai.ChatCompletion.create(
             model="gpt-3.5-turbo",  
-            messages=[{"role": "system", "content": "You are a helpful assistant."},
-                      {"role": "user", "content": user_input}]
+            messages=[
+                {"role": "system", "content": "You are Athena, a helpful AI assistant."},
+                {"role": "user", "content": user_input}
+            ]
         )
 
         reply = response["choices"][0]["message"]["content"]
@@ -54,9 +57,12 @@ def chat_with_gpt(user_input):
         print(f"❌ ChatGPT Error: {e}")
         speak("Sorry, I encountered an error while processing your request.")
 
-
 def generate_image(prompt):
     """Generates an image using OpenAI's DALL·E API."""
+    if not OPENAI_API_KEY:
+        speak("OpenAI API key is not configured. Please add your API key to config.py")
+        return
+        
     try:
         response = openai.Image.create(
             model="dall-e-2",  
@@ -67,146 +73,126 @@ def generate_image(prompt):
 
         image_url = response["data"][0]["url"]
         print(f"🖼️ Image Generated: {image_url}")
+        speak(f"Image generated successfully. You can find it at {image_url}")
         return image_url  
 
     except Exception as e:
         print(f"❌ Image Generation Error: {e}")
+        speak("Sorry, I couldn't generate the image.")
 
 def connect_to_mysql():
-    
     """Establishes MySQL database connection with error handling and auto-reconnect."""
     global mydb, mycursor
     try:
-        mydb = mysql.connector.connect(
-            host="localhost",
-            user="root",
-            password="",
-            database="athenadb",
-            autocommit=True 
-        )
+        mydb = mysql.connector.connect(**DB_CONFIG, autocommit=True)
         mycursor = mydb.cursor()
         print("✅ Connected to MySQL successfully!")
+        return True
     except mysql.connector.Error as err:
         print(f"❌ MySQL Connection Error: {err}")
-        mydb = None  
+        print("Please run database_setup.py first to create the database and tables.")
+        mydb = None
+        mycursor = None
+        return False
 
+def ensure_db_connection():
+    """Ensures database connection is active"""
+    global mydb, mycursor
+    if mydb is None or not mydb.is_connected():
+        return connect_to_mysql()
+    return True
 
-connect_to_mysql()
-    
-#openai.api_key = ""
-#openai.api_key = ""
-
-# engine = pyttsx3.init()
-# def speak(text):
-#     engine.say(text)
-#     engine.runAndWait()
-
-# def getvoice(voice):
-#     current_voice = engine.getProperty('voice')
-#     if voice == 1:
-#         engine.setProperty('voice', zira_voice_id)
-#         speak("hello this is Athena")
-
-#openai.api_key = ""
-
-
-
-nlp = spacy.load("en_core_web_sm")
+# Load spaCy model with error handling
+try:
+    nlp = spacy.load("en_core_web_sm")
+except OSError:
+    print("❌ spaCy model 'en_core_web_sm' not found. Please run: python -m spacy download en_core_web_sm")
+    nlp = None
 
 def takeCommandMIC():
+    """Takes voice input from microphone"""
     r = sr.Recognizer()
     with sr.Microphone() as source:
         print("Listening...")
         r.adjust_for_ambient_noise(source, duration=1)
         r.pause_threshold = 1
-        audio = r.listen(source)
+        audio = r.listen(source, timeout=5, phrase_time_limit=10)
         try:
             print("Recognizing...")
             query = r.recognize_google(audio, language='en-in')
             print(f"User said: {query}\n")
+            return query.lower()
+        except sr.UnknownValueError:
+            print("Could not understand audio")
+            speak("I didn't catch that. Could you please repeat?")
+            return None
+        except sr.RequestError as e:
+            print(f"Error with speech recognition service: {e}")
+            speak("There's an issue with the speech recognition service.")
+            return None
         except Exception as e:
             print(f"Error: {str(e)}")
             speak("Say that again please...")
             return None
-    return query.lower()
-
 
 def process_query(query):
     """Tokenize query using spaCy"""
-    doc = nlp(query.lower())  
-    return [token.text for token in doc if not token.is_punct]  
-
-   
-
-def handle_email():
+    if nlp is None:
+        return query.lower().split()  # Fallback to simple split
     
-    email_list = {
-        'email': 'jeetdodia34@gmail.com'
-    }
-    try:
-        speak("To whom do you want to send the email?")
-        name = takeCommandMIC()
-        receiver = email_list.get(name, 'default_receiver@example.com') 
-        speak("What is the subject of the mail?")
-        subject = takeCommandMIC()
-        speak("What should I say?")
-        content = takeCommandMIC()
-        sendEmail(receiver, subject, content)
-        speak("Email has been sent.")
-    except Exception as e:
-        print(e)
-        speak("Unable to send the email.")    
+    doc = nlp(query.lower())  
+    return [token.text for token in doc if not token.is_punct]
 
 def time():
+    """Gets current time and logs to database"""
     try:
-        hour = str(datetime.datetime.now().hour)
-        minute = str(datetime.datetime.now().minute)
+        current_time = datetime.datetime.now()
+        hour = current_time.strftime("%I")
+        minute = current_time.strftime("%M")
+        period = current_time.strftime("%p")
         
-        speak("The current time is:")
-        speak(hour)
-        speak(minute)
+        time_str = f"The current time is {hour}:{minute} {period}"
+        speak(time_str)
+        print(time_str)
 
-        current_time = datetime.datetime.now().strftime("%I:%M %p")  
-        timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        if ensure_db_connection():
+            formatted_time = current_time.strftime("%I:%M %p")
+            timestamp = current_time.strftime("%Y-%m-%d %H:%M:%S")
+            
+            sql = "INSERT INTO time_logs (current_time, timestamp) VALUES (%s, %s)"
+            val = (formatted_time, timestamp)
+            mycursor.execute(sql, val)
+            print("✅ Time logged successfully!")
 
-        
-        sql = "INSERT INTO time_logs (current_time, timestamp) VALUES (%s, %s)"
-        val = (current_time, timestamp)
-
-        mycursor.execute(sql, val)
-        mydb.commit()
-        print("✅ Time logged successfully!")
-
-    except mysql.connector.Error as err:
-        print(f"❌ Error logging time to MySQL: {err}")
-
+    except Exception as err:
+        print(f"❌ Error in time function: {err}")
 
 def date():
+    """Gets current date and logs to database"""
     try:
-        year = str(datetime.datetime.now().year)
-        month = str(datetime.datetime.now().month)
-        day = str(datetime.datetime.now().day)
-
-        full_date = f"The current date is {day} {month} {year}."
+        current_date = datetime.datetime.now()
+        year = current_date.year
+        month = current_date.strftime("%B")
+        day = current_date.day
         
-        speak(full_date)  
+        date_str = f"Today is {month} {day}, {year}"
+        speak(date_str)
+        print(date_str)
 
-        log_date = datetime.datetime.now().strftime("%Y-%m-%d") 
-        timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        if ensure_db_connection():
+            log_date = current_date.strftime("%Y-%m-%d")
+            timestamp = current_date.strftime("%Y-%m-%d %H:%M:%S")
+            
+            sql = "INSERT INTO date_logs (log_date, timestamp) VALUES (%s, %s)"
+            val = (log_date, timestamp)
+            mycursor.execute(sql, val)
+            print("✅ Date logged successfully!")
 
-        
-        sql = "INSERT INTO date_logs (log_date, timestamp) VALUES (%s, %s)"
-        val = (log_date, timestamp)
-
-        mycursor.execute(sql, val)
-        mydb.commit()
-        print("✅ Date logged successfully!")
-
-    except mysql.connector.Error as err:
-        print(f"❌ Error logging date to MySQL: {err}")
-
+    except Exception as err:
+        print(f"❌ Error in date function: {err}")
 
 def greeting():
+    """Provides time-appropriate greeting"""
     hour = datetime.datetime.now().hour
     if 6 <= hour < 12:
         speak("Good Morning Sir!")
@@ -218,533 +204,413 @@ def greeting():
         speak("Good Night Sir!")
 
 def wishme():
+    """Initial greeting when starting Athena"""
     speak("Welcome back Sir!")
     greeting()
     speak("Athena at your service. Please tell me how can I help you?")
 
-def takeCommandCMD():
-    query = input("Please tell me how can I help you?\n")
-    return query
-
-def takeCommandMIC():
-    r = sr.Recognizer()
-    with sr.Microphone() as source:
-        print("Listening...")
-        r.adjust_for_ambient_noise(source, duration=1)
-        r.pause_threshold = 1
-        audio = r.listen(source)
-        try:
-            print("Recognizing...")
-            query = r.recognize_google(audio, language='en-in')
-            print(f"User said: {query}\n")
-        except Exception as e:
-            print(f"Error: {str(e)}")
-            speak("Say that again please...")
-            return "None"
-        return query
-
 def search_wikipedia():
+    """Searches Wikipedia and logs results"""
     speak("What topic would you like to search on Wikipedia?")
     topic = takeCommandMIC()
+    
+    if not topic:
+        return
+        
     try:
         summary = wikipedia.summary(topic, sentences=2)
-        speak(summary)
-        sql = "INSERT INTO searches (query, result) VALUES (%s, %s)"
-        val = (topic, summary)
-        mycursor.execute(sql, val)
-        mydb.commit()
+        speak(f"According to Wikipedia: {summary}")
+        print(f"Wikipedia Result: {summary}")
+        
+        if ensure_db_connection():
+            sql = "INSERT INTO searches (query, result) VALUES (%s, %s)"
+            val = (topic, summary)
+            mycursor.execute(sql, val)
+            print("✅ Wikipedia search logged successfully!")
+            
     except wikipedia.exceptions.DisambiguationError as e:
-        options = e.options
-        speak(f"The search term '{topic}' is ambiguous. Please specify. Options: {', '.join(options)}")
+        options = e.options[:3]  # Show first 3 options
+        speak(f"The search term '{topic}' has multiple meanings. Here are some options: {', '.join(options)}")
     except wikipedia.exceptions.PageError:
-        speak("Sorry, the page does not exist.")
-    
+        speak("Sorry, I couldn't find a Wikipedia page for that topic.")
+    except Exception as e:
+        print(f"❌ Wikipedia search error: {e}")
+        speak("Sorry, there was an error searching Wikipedia.")
+
 def sendEmail(receiver, subject, content):
+    """Sends email and logs to database"""
     try:
         server = smtplib.SMTP('smtp.gmail.com', 587)
         server.starttls()
         server.login(senderemail, epwd)
+        
         email = EmailMessage()
         email['From'] = senderemail
         email['To'] = receiver
         email['Subject'] = subject
         email.set_content(content)
+        
         server.send_message(email)
         server.close()
 
-        timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        sql = "INSERT INTO emails (receiver, subject, content, timestamp) VALUES (%s, %s, %s, %s)"
-        val = (receiver, subject, content, timestamp)
-        mycursor.execute(sql, val)
-        mydb.commit()
+        if ensure_db_connection():
+            timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            sql = "INSERT INTO emails (receiver, subject, content, timestamp) VALUES (%s, %s, %s, %s)"
+            val = (receiver, subject, content, timestamp)
+            mycursor.execute(sql, val)
+            print("✅ Email logged successfully!")
 
-        speak("Email has been sent.")
-        print("✅ Email logged successfully!")
+        speak("Email has been sent successfully.")
 
     except Exception as e:
         print(f"❌ Error sending email: {e}")
-        speak("Sorry, I am not able to send this email at the moment.")
-        
+        speak("Sorry, I couldn't send the email. Please check your email configuration.")
+
 def sendwhatsmsg(phone_no, message):
+    """Sends WhatsApp message and logs to database"""
     try:
         wb.open(f'https://web.whatsapp.com/send?phone={phone_no}&text={message}')
         sleep(10)
         pyautogui.press('enter')
 
-        timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        sql = "INSERT INTO whatsapp_messages (phone_no, message, timestamp) VALUES (%s, %s, %s)"
-        val = (phone_no, message, timestamp)
-        mycursor.execute(sql, val)
-        mydb.commit()
-
-        print("✅ WhatsApp message logged successfully!")
+        if ensure_db_connection():
+            timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            sql = "INSERT INTO whatsapp_messages (phone_no, message, timestamp) VALUES (%s, %s, %s)"
+            val = (phone_no, message, timestamp)
+            mycursor.execute(sql, val)
+            print("✅ WhatsApp message logged successfully!")
+            
     except Exception as e:
         print(f"❌ Error sending WhatsApp message: {e}")
-
-
-
+        speak("Sorry, I couldn't send the WhatsApp message.")
 
 def searchgoogle():
+    """Searches Google and logs query"""
     speak('What should I search for?')
     search = takeCommandMIC()
+    
+    if not search:
+        return
 
     try:
         wb.open(f'https://www.google.com/search?q={search}')
-        sql = "INSERT INTO searches (query) VALUES (%s)"
-        val = (search,)
-        mycursor.execute(sql, val)
-        mydb.commit()
-
-        print("✅ Search logged successfully!")
+        speak(f"Here are the search results for {search}")
+        
+        if ensure_db_connection():
+            sql = "INSERT INTO searches (query) VALUES (%s)"
+            val = (search,)
+            mycursor.execute(sql, val)
+            print("✅ Search logged successfully!")
+            
     except Exception as e:
-        print(f"❌ Error logging search: {e}")
-
-    
-def get_country_code(country_name):
-    """Maps country names to ISO country codes for NewsAPI."""
-    country_mapping = {
-    'united states': 'us', 'india': 'in', 'united kingdom': 'gb', 'canada': 'ca',
-    'australia': 'au', 'germany': 'de', 'france': 'fr', 'italy': 'it', 'spain': 'es',
-    'russia': 'ru', 'china': 'cn', 'japan': 'jp', 'brazil': 'br', 'south africa': 'za',
-    'mexico': 'mx', 'argentina': 'ar', 'netherlands': 'nl', 'sweden': 'se', 'switzerland': 'ch',
-    'norway': 'no', 'denmark': 'dk', 'south korea': 'kr', 'new zealand': 'nz', 'singapore': 'sg',
-    'turkey': 'tr', 'saudi arabia': 'sa', 'united arab emirates': 'ae', 'egypt': 'eg', 'indonesia': 'id',
-    'thailand': 'th', 'philippines': 'ph', 'malaysia': 'my', 'pakistan': 'pk', 'bangladesh': 'bd',
-    'vietnam': 'vn', 'hong kong': 'hk', 'taiwan': 'tw', 'israel': 'il', 'greece': 'gr',
-    'portugal': 'pt', 'belgium': 'be', 'finland': 'fi', 'poland': 'pl', 'austria': 'at',
-    'romania': 'ro', 'czech republic': 'cz', 'hungary': 'hu', 'ukraine': 'ua', 'chile': 'cl',
-    'colombia': 'co', 'peru': 'pe', 'venezuela': 've', 'ecuador': 'ec', 'uruguay': 'uy',
-    'paraguay': 'py', 'bolivia': 'bo', 'costa rica': 'cr', 'panama': 'pa', 'dominican republic': 'do',
-    'cuba': 'cu', 'jamaica': 'jm', 'haiti': 'ht', 'nigeria': 'ng', 'kenya': 'ke',
-    'ghana': 'gh', 'ethiopia': 'et', 'uganda': 'ug', 'tanzania': 'tz', 'zimbabwe': 'zw',
-    'morocco': 'ma', 'algeria': 'dz', 'tunisia': 'tn', 'iraq': 'iq', 'iran': 'ir',
-    'lebanon': 'lb', 'qatar': 'qa', 'kuwait': 'kw', 'oman': 'om', 'sri lanka': 'lk',
-    'kazakhstan': 'kz', 'uzbekistan': 'uz', 'turkmenistan': 'tm', 'afghanistan': 'af', 'azerbaijan': 'az',
-    'georgia': 'ge', 'armenia': 'am', 'mongolia': 'mn'
-}
-    return country_mapping.get(country_name.lower(), None)
-
+        print(f"❌ Error in Google search: {e}")
 
 def news():
+    """Fetches and reads news with improved error handling"""
+    if not NEWS_API_KEY:
+        speak("News API key is not configured. Please add your API key to config.py")
+        return
+        
     speak("Which country's news would you like to hear?")
-    country_name = takeCommandMIC().lower()
-
-    country_codes = {
-    'united states': 'us', 'india': 'in', 'united kingdom': 'gb', 'canada': 'ca',
-    'australia': 'au', 'germany': 'de', 'france': 'fr', 'italy': 'it', 'spain': 'es',
-    'russia': 'ru', 'china': 'cn', 'japan': 'jp', 'brazil': 'br', 'south africa': 'za',
-    'mexico': 'mx', 'argentina': 'ar', 'netherlands': 'nl', 'sweden': 'se', 'switzerland': 'ch',
-    'norway': 'no', 'denmark': 'dk', 'south korea': 'kr', 'new zealand': 'nz', 'singapore': 'sg',
-    'turkey': 'tr', 'saudi arabia': 'sa', 'united arab emirates': 'ae', 'egypt': 'eg', 'indonesia': 'id',
-    'thailand': 'th', 'philippines': 'ph', 'malaysia': 'my', 'pakistan': 'pk', 'bangladesh': 'bd',
-    'vietnam': 'vn', 'hong kong': 'hk', 'taiwan': 'tw', 'israel': 'il', 'greece': 'gr',
-    'portugal': 'pt', 'belgium': 'be', 'finland': 'fi', 'poland': 'pl', 'austria': 'at',
-    'romania': 'ro', 'czech republic': 'cz', 'hungary': 'hu', 'ukraine': 'ua', 'chile': 'cl',
-    'colombia': 'co', 'peru': 'pe', 'venezuela': 've', 'ecuador': 'ec', 'uruguay': 'uy',
-    'paraguay': 'py', 'bolivia': 'bo', 'costa rica': 'cr', 'panama': 'pa', 'dominican republic': 'do',
-    'cuba': 'cu', 'jamaica': 'jm', 'haiti': 'ht', 'nigeria': 'ng', 'kenya': 'ke',
-    'ghana': 'gh', 'ethiopia': 'et', 'uganda': 'ug', 'tanzania': 'tz', 'zimbabwe': 'zw',
-    'morocco': 'ma', 'algeria': 'dz', 'tunisia': 'tn', 'iraq': 'iq', 'iran': 'ir',
-    'lebanon': 'lb', 'qatar': 'qa', 'kuwait': 'kw', 'oman': 'om', 'sri lanka': 'lk',
-    'kazakhstan': 'kz', 'uzbekistan': 'uz', 'turkmenistan': 'tm', 'afghanistan': 'af', 'azerbaijan': 'az',
-    'georgia': 'ge', 'armenia': 'am', 'mongolia': 'mn'
-}
-
-
-    country_code = country_codes.get(country_name)
-
-    if not country_code:
-        speak(f"Sorry, I couldn't find the news for {country_name}. Please try again.")
+    country_name = takeCommandMIC()
+    
+    if not country_name:
         return
 
-    speak("What type of news are you interested in? For example, stock, politics, technology, sports, or general news.")
-    news_type = takeCommandMIC().lower()
+    country_codes = {
+        'united states': 'us', 'usa': 'us', 'america': 'us',
+        'india': 'in', 'united kingdom': 'gb', 'uk': 'gb', 'britain': 'gb',
+        'canada': 'ca', 'australia': 'au', 'germany': 'de', 'france': 'fr'
+    }
 
-    category_mapping = {
-    "politics": "politics",
-    "business": "business",
-    "finance": "business",
-    "stock market": "business",
-    "sports": "sports",
-    "entertainment": "entertainment",
-    "movies": "entertainment",
-    "celebrities": "entertainment",
-    "music": "entertainment",
-    "health": "health",
-    "technology": "technology",
-    "science": "science",
-    "education": "education",
-    "environment": "environment",
-    "climate change": "environment",
-    "crime": "crime",
-    "cybersecurity": "technology",
-    "gaming": "technology",
-    "real estate": "business",
-    "travel": "travel",
-    "food": "food",
-    "fashion": "fashion",
-    "culture": "culture",
-    "religion": "religion",
-    "international": "world",
-    "war": "world",
-    "space": "science"
-}
-
-
-    category = category_mapping.get(news_type, 'general')  
-
-    
-    newsapi = NewsApiClient(API_KEY)
+    country_code = country_codes.get(country_name.lower())
+    if not country_code:
+        speak(f"Sorry, I don't have news coverage for {country_name}. Please try another country.")
+        return
 
     try:
-        data = newsapi.get_top_headlines(category=category, country=country_code, language="en")
+        newsapi = NewsApiClient(NEWS_API_KEY)
+        data = newsapi.get_top_headlines(country=country_code, language="en")
         articles = data.get("articles", [])
 
         if not articles:
-            speak(f"Sorry, there are no {news_type} news articles available for {country_name}.")
+            speak(f"Sorry, no news articles are available for {country_name} right now.")
             return
 
-        speak(f"Here are the top {news_type} news headlines in {country_name}.")
-        print(f"\n🔹 {news_type.capitalize()} News from {country_name}:")
-
-        news_options = []
-        for i, article in enumerate(articles[:3]): 
+        speak(f"Here are the top news headlines from {country_name}.")
+        
+        for i, article in enumerate(articles[:3]):
             title = article["title"]
-            summary = article["description"][:100] + "..." if article["description"] else "No description available."
-            print(f"{i+1}. {title} - {summary}")
-            speak(f"Number {i+1}, {title}. {summary}")
-            news_options.append((title, article))
+            description = article.get("description", "No description available.")
+            speak(f"News {i+1}: {title}. {description}")
+            print(f"{i+1}. {title}")
+            
+            if ensure_db_connection():
+                sql = "INSERT INTO news (title, description, country) VALUES (%s, %s, %s)"
+                val = (title, description, country_name)
+                mycursor.execute(sql, val)
 
-       
-        while True:
-            speak("Would you like more details about any of these news articles? Say the number or 'no' to go back.")
-            choice = takeCommandMIC().lower()
-
-            if choice in ["no", "back"]:
-                speak("Okay, going back to the news selection.")
-                return 
-
-            try:
-                choice = int(choice) - 1
-                if 0 <= choice < len(news_options):
-                    selected_title, selected_article = news_options[choice]
-
-                    full_description = selected_article["description"] if selected_article["description"] else "No detailed description available."
-                    full_content = selected_article["content"] if selected_article["content"] else "No additional content available."
-
-                    
-                    speak(f"Here are the details for {selected_title}. {full_description} {full_content}")
-                    print(f"\n📌 Full News for {selected_title}: \n{full_description}\n{full_content}\n")
-
-                
-                    sql = "INSERT INTO news (title, description, content, category, country) VALUES (%s, %s, %s, %s, %s)"
-                    val = (selected_title, full_description, full_content, category, country_name)
-                    mycursor.execute(sql, val)
-                    mydb.commit()
-                    print("✅ Selected news logged successfully!")
-
-                    speak("Would you like to hear about another news article from this category?")
-                    next_choice = takeCommandMIC().lower()
-                    if next_choice in ["no", "back"]:
-                        speak("Okay, going back to the news selection.")
-                        return  
-
-                else:
-                    speak("Invalid selection. Please say a number between 1 and 3.")
-            except ValueError:
-                speak("Invalid response. Please try again.")
+        print("✅ News logged successfully!")
 
     except Exception as e:
         print(f"❌ Error fetching news: {e}")
-        speak("Sorry, there was an error retrieving news.")
+        speak("Sorry, I couldn't fetch the news right now.")
 
 def weather():
-    """Fetches and logs weather information into MySQL."""
-    try:
-        speak("Which city's weather information would you like to know?")
-        city_name = takeCommandMIC().lower()
+    """Fetches weather information and logs to database"""
+    speak("Which city's weather would you like to know?")
+    city_name = takeCommandMIC()
+    
+    if not city_name:
+        return
 
-        
-        api_key = "21c9fe0d0b585bed0a16677ee079de8b"
+    try:
         base_url = "http://api.openweathermap.org/data/2.5/weather?"
-        complete_url = f"{base_url}q={city_name}&units=metric&appid={api_key}"
+        complete_url = f"{base_url}q={city_name}&units=metric&appid={WEATHER_API_KEY}"
         
         response = requests.get(complete_url)
         weather_data = response.json()
 
-        print(f"🔍 API Response: {weather_data}") 
-
-        if weather_data["cod"] == 200:  
+        if weather_data["cod"] == 200:
             main = weather_data.get("main", {})
             weather_desc = weather_data.get("weather", [{}])[0].get("description", "No description")
             temperature = main.get("temp", "N/A")
             humidity = main.get("humidity", "N/A")
 
-    
-            speak(f"The temperature in {city_name} is {temperature} degrees Celsius, "
-                  f"with a humidity of {humidity} percent, and the weather condition is {weather_desc}.")
+            weather_info = f"The temperature in {city_name} is {temperature} degrees Celsius, with {humidity} percent humidity. The weather condition is {weather_desc}."
+            speak(weather_info)
+            print(weather_info)
 
-            timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            sql = "INSERT INTO weather (city, temperature, humidity, description, timestamp) VALUES (%s, %s, %s, %s, %s)"
-            val = (city_name, temperature, humidity, weather_desc, timestamp)
+            if ensure_db_connection():
+                timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                sql = "INSERT INTO weather (city, temperature, humidity, description, timestamp) VALUES (%s, %s, %s, %s, %s)"
+                val = (city_name, temperature, humidity, weather_desc, timestamp)
+                mycursor.execute(sql, val)
+                print("✅ Weather data logged successfully!")
 
-            mycursor.execute(sql, val)
-            mydb.commit()
-            print(f"✅ Weather data for '{city_name}' logged successfully!")
-
-        else:  
+        else:
             error_message = weather_data.get("message", "Unknown error")
-            speak(f"Sorry, I couldn't fetch the weather details. {error_message}. Please try again.")
-            print(f"❌ Error fetching weather for '{city_name}': {error_message}")
-
-    except mysql.connector.Error as err:
-        print(f"❌ MySQL Error logging weather: {err}")
+            speak(f"Sorry, I couldn't get weather information for {city_name}. {error_message}")
 
     except Exception as e:
-        print(f"❌ General Error in weather function: {e}")
+        print(f"❌ Error in weather function: {e}")
+        speak("Sorry, there was an error getting the weather information.")
 
-
-                
 def text2speech():
+    """Reads clipboard content and logs to database"""
     try:
-        text = clipboard.paste()  
-        if text:
+        text = clipboard.paste()
+        if text and text.strip():
             speak(f"Reading from clipboard: {text}")
             
-           
-            sql = "INSERT INTO clipboard_data (copied_text) VALUES (%s)"
-            val = (text,)
-            mycursor.execute(sql, val)
-            mydb.commit()
-
-            print("✅ Clipboard text logged and spoken successfully!")
+            if ensure_db_connection():
+                sql = "INSERT INTO clipboard_data (copied_text) VALUES (%s)"
+                val = (text,)
+                mycursor.execute(sql, val)
+                print("✅ Clipboard text logged successfully!")
         else:
-            speak("The clipboard is empty! Please copy some text first.")
-            print("❌ Clipboard is empty!")
-    except mysql.connector.Error as err:
-        print(f"❌ Error logging clipboard data: {err}")
+            speak("The clipboard is empty. Please copy some text first.")
+            
+    except Exception as e:
+        print(f"❌ Error in text2speech: {e}")
+        speak("Sorry, I couldn't read from the clipboard.")
 
-
-
-
-        
 def openResource(query):
-    """Opens a specific resource (Documents, Music, Pictures, Videos) and logs it into MySQL."""
+    """Opens system resources and logs actions"""
     try:
-        
-        query = query.lower().split()
-
+        query_words = query.lower().split()
         
         resource_paths = {
-            'documents': os.path.normpath(os.path.join(os.environ['USERPROFILE'], 'Documents')),
-            'music': os.path.normpath(os.path.join(os.environ['USERPROFILE'], 'Music')),
-            'pictures': os.path.normpath(os.path.join(os.environ['USERPROFILE'], 'Pictures')),
-            'videos': os.path.normpath(os.path.join(os.environ['USERPROFILE'], 'Videos')),
-            'downloads': os.path.normpath(os.path.join(os.environ['USERPROFILE'], 'Downloads')),
-            'desktop': os.path.normpath(os.path.join(os.environ['USERPROFILE'], 'Desktop'))
+            'documents': os.path.join(os.environ['USERPROFILE'], 'Documents'),
+            'music': os.path.join(os.environ['USERPROFILE'], 'Music'),
+            'pictures': os.path.join(os.environ['USERPROFILE'], 'Pictures'),
+            'videos': os.path.join(os.environ['USERPROFILE'], 'Videos'),
+            'downloads': os.path.join(os.environ['USERPROFILE'], 'Downloads'),
+            'desktop': os.path.join(os.environ['USERPROFILE'], 'Desktop')
         }
 
-     
         for resource in resource_paths.keys():
-            if resource in query:
+            if resource in query_words:
                 resource_path = resource_paths[resource]
                 
-                if os.path.exists(resource_path):  
-                    os.startfile(resource_path) 
-
-                    
-                    timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                    sql = "INSERT INTO resource_actions (resource_type, timestamp) VALUES (%s, %s)"
-                    val = (resource, timestamp)
-
-                    mycursor.execute(sql, val)
-                    mydb.commit()
-
+                if os.path.exists(resource_path):
+                    os.startfile(resource_path)
                     speak(f"Opening {resource}")
-                    print(f"✅ Successfully opened '{resource}' and logged the action.")
+                    
+                    if ensure_db_connection():
+                        timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                        sql = "INSERT INTO resource_actions (resource_type, timestamp) VALUES (%s, %s)"
+                        val = (resource, timestamp)
+                        mycursor.execute(sql, val)
+                        print(f"✅ Resource action logged: {resource}")
                 else:
-                    speak(f"Sorry, I couldn't find {resource}.")
-                    print(f"❌ Error: Path does not exist -> {resource_path}")
+                    speak(f"Sorry, I couldn't find the {resource} folder.")
                 return
 
+        speak("I couldn't identify the resource you want to open.")
         
-        speak("I couldn't find that resource.")
-        print("❌ Error: Resource not found in the predefined paths.")
-
     except Exception as e:
-         speak("Sorry, I couldn't open the requested resource.")
-         print(f"❌ Error in openResource function: {e}")
-
+        print(f"❌ Error in openResource: {e}")
+        speak("Sorry, I couldn't open the requested resource.")
 
 def screenshot():
-    """Takes a screenshot, saves it in the correct directory, and logs it in MySQL."""
+    """Takes screenshot and logs to database"""
     try:
+        # Create screenshots folder if it doesn't exist
+        if not os.path.exists(SCREENSHOT_FOLDER):
+            os.makedirs(SCREENSHOT_FOLDER)
+            
         timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        filepath = os.path.join(SCREENSHOT_FOLDER, f"screenshot_{timestamp}.png")
         
-        
-        screenshot_folder = r"C:\\college\\AI PROJ\\screenshot"  
-        filepath = os.path.join(screenshot_folder, f"screenshot_{timestamp}.png")  
         img = pyautogui.screenshot()
         img.save(filepath)
 
-        
-        sql = "INSERT INTO screenshots (filepath, timestamp) VALUES (%s, %s)"
-        val = (filepath, timestamp)
-        mycursor.execute(sql, val)
-        mydb.commit()
-
         speak("Screenshot taken and saved.")
         print(f"✅ Screenshot saved at: {filepath}")
+        
+        if ensure_db_connection():
+            sql = "INSERT INTO screenshots (filepath, timestamp) VALUES (%s, %s)"
+            val = (filepath, timestamp)
+            mycursor.execute(sql, val)
+            print("✅ Screenshot logged successfully!")
 
     except Exception as e:
         print(f"❌ Error taking screenshot: {e}")
         speak("Sorry, I couldn't take the screenshot.")
 
-
 def remember_task(task):
-    """Stores the task in MySQL with a timestamp."""
-    timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    try:
-        sql = "INSERT INTO tasks (task, timestamp) VALUES (%s, %s)"
-        val = (task, timestamp)
-        mycursor.execute(sql, val)
-        mydb.commit()
-        print(f"✅ Task '{task}' remembered successfully!")
-        speak(f"I have remembered the task: {task}")
-    except mysql.connector.Error as err:
-        print(f"❌ Error logging task: {err}")
-        speak("Sorry, I couldn't remember the task.")
-
+    """Stores task in database"""
+    if ensure_db_connection():
+        try:
+            timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            sql = "INSERT INTO tasks (task, timestamp) VALUES (%s, %s)"
+            val = (task, timestamp)
+            mycursor.execute(sql, val)
+            speak(f"I have remembered: {task}")
+            print(f"✅ Task remembered: {task}")
+        except Exception as err:
+            print(f"❌ Error remembering task: {err}")
+            speak("Sorry, I couldn't remember that task.")
 
 def remind_tasks():
-    """Retrieves and speaks out the remembered tasks from MySQL."""
-    try:
-        sql = "SELECT task, timestamp FROM tasks ORDER BY timestamp DESC LIMIT 5"
-        mycursor.execute(sql)
-        tasks = mycursor.fetchall()
+    """Retrieves and speaks remembered tasks"""
+    if ensure_db_connection():
+        try:
+            sql = "SELECT task, timestamp FROM tasks ORDER BY timestamp DESC LIMIT 5"
+            mycursor.execute(sql)
+            tasks = mycursor.fetchall()
 
-        if tasks:
-            speak("Here are the tasks you asked me to remember:")
-            for task, timestamp in tasks:
-                speak(f"{task} on {timestamp}")
-                print(f"📌 Task: {task} | 🕒 {timestamp}")
-        else:
-            speak("You have no tasks remembered.")
-            print("❌ No tasks found in the database.")
-    except mysql.connector.Error as err:
-        print(f"❌ Error retrieving tasks: {err}")
-        speak("Sorry, I couldn't retrieve your tasks.")
-
+            if tasks:
+                speak("Here are your recent tasks:")
+                for task, timestamp in tasks:
+                    speak(f"{task}")
+                    print(f"📌 {task} - {timestamp}")
+            else:
+                speak("You have no remembered tasks.")
+        except Exception as err:
+            print(f"❌ Error retrieving tasks: {err}")
+            speak("Sorry, I couldn't retrieve your tasks.")
 
 def tell_a_joke():
-    """Fetches a joke, speaks it, prints it, and stores it in MySQL."""
-    joke = pyjokes.get_joke()  
-    print(f"😂 Joke: {joke}")  
-    speak(joke)  
-
+    """Tells a joke and logs to database"""
     try:
-        sql = "INSERT INTO jokes (joke, timestamp) VALUES (%s, %s)"
-        timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        val = (joke, timestamp)
-        mycursor.execute(sql, val)
-        mydb.commit()
-        print("✅ Joke logged successfully in MySQL!")
-    except mysql.connector.Error as err:
-        print(f"❌ Error logging joke: {err}")
-        speak("Sorry, I couldn't save the joke.")
+        joke = pyjokes.get_joke()
+        speak(joke)
+        print(f"😂 {joke}")
 
-    
+        if ensure_db_connection():
+            timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            sql = "INSERT INTO jokes (joke, timestamp) VALUES (%s, %s)"
+            val = (joke, timestamp)
+            mycursor.execute(sql, val)
+            print("✅ Joke logged successfully!")
+            
+    except Exception as e:
+        print(f"❌ Error telling joke: {e}")
+        speak("Sorry, I couldn't think of a joke right now.")
+
 def flip_coin():
-    """Flips a coin, announces the result, prints it, and stores it in MySQL."""
-    result = random.choice(["Heads", "Tails"])  
-    print(f"🪙 Coin Flip Result: {result}")  
-    speak(f"The coin landed on {result}.")  
-
+    """Flips a coin and logs result"""
     try:
-      
-        sql = "INSERT INTO coin_flips (result, timestamp) VALUES (%s, %s)"
-        timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        val = (result, timestamp)
-        mycursor.execute(sql, val)
-        mydb.commit()
-        print("✅ Coin flip result logged successfully in MySQL!")
-    except mysql.connector.Error as err:
-        print(f"❌ Error logging coin flip result: {err}")
-        speak("Sorry, I couldn't store the coin flip result.")
-        
-        
+        result = random.choice(["Heads", "Tails"])
+        speak(f"The coin landed on {result}.")
+        print(f"🪙 Coin flip result: {result}")
 
-if __name__ == "__main__":
+        if ensure_db_connection():
+            timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            sql = "INSERT INTO coin_flips (result, timestamp) VALUES (%s, %s)"
+            val = (result, timestamp)
+            mycursor.execute(sql, val)
+            print("✅ Coin flip logged successfully!")
+            
+    except Exception as e:
+        print(f"❌ Error flipping coin: {e}")
+        speak("Sorry, I couldn't flip the coin.")
+
+def main():
+    """Main function to run Athena"""
+    print("🤖 Starting Athena AI Assistant...")
+    
+    # Initialize database connection
+    if not connect_to_mysql():
+        print("❌ Database connection failed. Some features may not work properly.")
+        speak("Warning: Database connection failed. Some features may not work properly.")
+    
     wishme()
-    speak("Hello, I'm Athena")
-    wakeword = "athena"  
+    wakeword = "athena"
 
     while True:
-        query = takeCommandMIC()
-        if query:
-            query_tokens = process_query(query)  
-            print(f"Processed Tokens: {query_tokens}")
+        try:
+            query = takeCommandMIC()
+            if not query:
+                continue
+                
+            query_tokens = process_query(query)
+            print(f"Processed tokens: {query_tokens}")
 
-            if wakeword in query_tokens:  
+            if wakeword in query_tokens:
                 if 'time' in query_tokens:
                     time()
+                    
                 elif 'date' in query_tokens:
                     date()
+                    
                 elif 'email' in query_tokens:
-                    email_list = {'email': 'jeetdodiya34@gmail.com'}
+                    email_list = {'jeet': 'jeetdodia34@gmail.com'}
                     try:
-                        speak("To whom do you want to send the mail?")
+                        speak("To whom do you want to send the email?")
                         name = takeCommandMIC()
-                        receiver = email_list.get(name, None)
-                        if receiver:
-                            speak("What is the subject of the mail?")
+                        if name and name in email_list:
+                            receiver = email_list[name]
+                            speak("What is the subject?")
                             subject = takeCommandMIC()
                             speak("What should I say?")
                             content = takeCommandMIC()
-                            sendEmail(receiver, subject, content)
-                            speak("Email has been sent.")
+                            if subject and content:
+                                sendEmail(receiver, subject, content)
                         else:
                             speak("I couldn't find that contact.")
                     except Exception as e:
-                        print(e)
-                        speak("Unable to send the email.")
- 
+                        print(f"❌ Email error: {e}")
+                        speak("Sorry, I couldn't send the email.")
+
                 elif 'message' in query_tokens:
-                    user_name = {'ABC': '+', 'BCD': '+'}
+                    user_contacts = {'test': '+1234567890'}
                     try:
                         speak("To whom do you want to send the WhatsApp message?")
                         name = takeCommandMIC()
-                        phone_no = user_name.get(name, None)
-                        if phone_no:
+                        if name and name in user_contacts:
+                            phone_no = user_contacts[name]
                             speak("What is the message?")
                             message = takeCommandMIC()
-                            sendwhatsmsg(phone_no, message)
-                            speak("Message has been sent.")
+                            if message:
+                                sendwhatsmsg(phone_no, message)
                         else:
                             speak("I couldn't find that contact.")
                     except Exception as e:
-                        print(e)
-                        speak("Unable to send the message.")
+                        print(f"❌ WhatsApp error: {e}")
+                        speak("Sorry, I couldn't send the message.")
 
                 elif "search" in query_tokens and "wikipedia" in query_tokens:
                     search_wikipedia()
@@ -764,7 +630,7 @@ if __name__ == "__main__":
                 elif "open" in query_tokens:
                     openResource(query)
 
-                elif "jokes" in query_tokens:
+                elif "joke" in query_tokens:
                     tell_a_joke()
 
                 elif "screenshot" in query_tokens:
@@ -772,32 +638,55 @@ if __name__ == "__main__":
 
                 elif "remember" in query_tokens:
                     speak("What would you like me to remember?")
-                    task = takeCommandMIC()  
-                    if task and task != "none":  
+                    task = takeCommandMIC()
+                    if task:
                         remember_task(task)
 
-
-                elif "remind" in query_tokens:
+                elif "remind" in query_tokens or "tasks" in query_tokens:
                     remind_tasks()
 
                 elif "flip" in query_tokens and "coin" in query_tokens:
                     flip_coin()
                     
                 elif "chat" in query_tokens or "talk" in query_tokens:
-                    speak("What would you like to ask?")
+                    speak("What would you like to talk about?")
                     user_input = takeCommandMIC()
                     if user_input:
                         chat_with_gpt(user_input)
                 
-                elif "generate an image of" in query:
-                    image_prompt = query.split("generate an image of")[-1].strip()
-                    generate_image(image_prompt)
+                elif "generate" in query_tokens and "image" in query_tokens:
+                    # Extract prompt after "generate image of"
+                    prompt_start = query.find("generate image of")
+                    if prompt_start != -1:
+                        image_prompt = query[prompt_start + len("generate image of"):].strip()
+                        if image_prompt:
+                            generate_image(image_prompt)
+                        else:
+                            speak("Please specify what image you want me to generate.")
 
-
-                elif "quit" in query_tokens or "exit" in query_tokens:
-                    speak("Goodbye!")
-                    break 
+                elif "quit" in query_tokens or "exit" in query_tokens or "goodbye" in query_tokens:
+                    speak("Goodbye! Have a great day!")
+                    break
 
                 elif "offline" in query_tokens:
-                    quit()
+                    speak("Going offline. Goodbye!")
+                    break
                     
+                else:
+                    speak("I didn't understand that command. Please try again.")
+                    
+        except KeyboardInterrupt:
+            speak("Goodbye!")
+            break
+        except Exception as e:
+            print(f"❌ Unexpected error: {e}")
+            speak("Sorry, something went wrong. Please try again.")
+
+    # Close database connection
+    if mydb and mydb.is_connected():
+        mycursor.close()
+        mydb.close()
+        print("✅ Database connection closed.")
+
+if __name__ == "__main__":
+    main()
