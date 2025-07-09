@@ -22,7 +22,7 @@ class AdvancedFeatures:
     def handle_scheduled_screenshots(self, command):
         """Handle automated screenshot commands"""
         try:
-            # Parse command: "take screenshot every X minutes/seconds and save to Y drive"
+            # Parse command: "take screenshot every X minutes/seconds and save to Y drive/folder"
             words = command.lower().split()
             
             # Extract interval
@@ -40,9 +40,13 @@ class AdvancedFeatures:
             # Extract save location
             if "save to" in command:
                 save_part = command.split("save to")[1].strip()
-                if "drive" in save_part:
+                if "drive" in save_part or ":" in save_part:
                     drive_letter = save_part.split()[0].upper()
-                    save_location = f"{drive_letter}:\\Screenshots"
+                    # Handle both "D drive" and "D:" formats
+                    if ":" in drive_letter:
+                        save_location = f"{drive_letter}\\Screenshots"
+                    else:
+                        save_location = f"{drive_letter}:\\Screenshots"
                 else:
                     save_location = save_part
             
@@ -57,7 +61,8 @@ class AdvancedFeatures:
     def start_automated_screenshots(self, interval_minutes, save_location):
         """Start automated screenshot capture"""
         if self.is_taking_screenshots:
-            self.stop_automated_screenshots()
+            result = self.stop_automated_screenshots()
+            self.voice_handler.speak(result)
         
         self.is_taking_screenshots = True
         
@@ -71,13 +76,18 @@ class AdvancedFeatures:
                     # Take screenshot
                     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
                     filename = Path(save_location) / f"auto_screenshot_{timestamp}.png"
-                    
-                    import pyautogui
-                    screenshot = pyautogui.screenshot()
-                    screenshot.save(filename)
-                    
-                    count += 1
-                    self.voice_handler.speak(f"Screenshot {count} saved to {save_location}")
+
+                    try:
+                        import pyautogui
+                        screenshot = pyautogui.screenshot()
+                        screenshot.save(filename)
+                        count += 1
+                        self.voice_handler.speak(f"Screenshot {count} saved to {save_location}")
+                    except ImportError:
+                        # Fallback for environments without pyautogui
+                        print(f"Screenshot simulation: Would save to {filename}")
+                        count += 1
+                        self.voice_handler.speak(f"Screenshot {count} simulated")
                     
                     # Wait for next interval
                     time.sleep(interval_minutes * 60)
@@ -98,36 +108,64 @@ class AdvancedFeatures:
     def generate_image(self, prompt):
         """Generate AI image from text prompt"""
         try:
-            # This would integrate with AI image generation APIs
-            # For demo, we'll simulate the process
+            # Check if we have OpenAI API access
+            try:
+                import openai
+                have_openai = True
+            except ImportError:
+                have_openai = False
             
             self.voice_handler.speak("Generating your image, please wait...")
             
+            if have_openai and 'openai' in sys.modules:
+                try:
+                    # Try to use actual OpenAI API if available
+                    api_key = self.config.get_secure("api_keys.openai") if hasattr(self.config, "get_secure") else None
+                    
+                    if api_key:
+                        openai.api_key = api_key
+                        response = openai.Image.create(
+                            prompt=prompt,
+                            n=1,
+                            size="1024x1024"
+                        )
+                        image_url = response["data"][0]["url"]
+                        return f"""🎨 Image Generated Successfully!
+
+Prompt: "{prompt}"
+View your image at: {image_url}
+
+Would you like me to:
+1. Open the image in your browser
+2. Generate a different image
+3. Save the image to your computer"""
+                    
+                except Exception as e:
+                    print(f"OpenAI API error: {e}")
+            
+            # Fallback to simulation if OpenAI not available
             # Simulate API call delay
-            time.sleep(3)
+            time.sleep(2)
             
-            # In real implementation, this would call:
-            # - OpenAI DALL-E API
-            # - Stable Diffusion API
-            # - Local Stable Diffusion model
-            
-            # For now, we'll create a placeholder response
+            # Create a placeholder response
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             image_filename = f"generated_image_{timestamp}.png"
             
             # Simulate image generation
-            response = f"""🎨 Image Generation Complete!
+            response = f"""🎨 Image Generation Simulated!
 
 Prompt: "{prompt}"
-Generated: {image_filename}
+Simulated File: {image_filename}
 Resolution: 1024x1024
 Style: Photorealistic
 
-The image has been saved to your Pictures folder.
+In a full installation with API keys configured, 
+a real image would be generated based on your prompt.
+
 Would you like me to:
-1. Open the image
-2. Generate variations
-3. Create another image with different style?"""
+1. Set up image generation with OpenAI
+2. Try a different prompt
+3. Learn more about image generation"""
             
             return response
             
@@ -137,11 +175,61 @@ Would you like me to:
     def generate_code(self, request):
         """Generate programming code based on request"""
         try:
-            # Parse the programming request
+            # Check if we have OpenAI API access for better code generation
+            try:
+                import openai
+                have_openai = True
+            except ImportError:
+                have_openai = False
+            
             language = self.detect_programming_language(request)
             task = self.extract_programming_task(request)
-            
+
             self.voice_handler.speak(f"Generating {language} code for {task}")
+
+            # Try to use OpenAI for code generation if available
+            if have_openai and 'openai' in sys.modules:
+                try:
+                    api_key = self.config.get_secure("api_keys.openai") if hasattr(self.config, "get_secure") else None
+                    
+                    if api_key:
+                        openai.api_key = api_key
+                        response = openai.ChatCompletion.create(
+                            model="gpt-3.5-turbo",
+                            messages=[
+                                {"role": "system", "content": f"You are a helpful assistant that generates {language} code."},
+                                {"role": "user", "content": f"Write {language} code for {task}. Provide only the code with brief comments."}
+                            ]
+                        )
+                        
+                        generated_code = response["choices"][0]["message"]["content"]
+                        
+                        # Save to file
+                        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                        filename = f"generated_code_{timestamp}.{self.get_file_extension(language)}"
+                        
+                        # Save to Documents/Generated_Code folder
+                        code_dir = Path.home() / "Documents" / "Generated_Code"
+                        code_dir.mkdir(parents=True, exist_ok=True)
+                        
+                        file_path = code_dir / filename
+                        with open(file_path, 'w', encoding='utf-8') as f:
+                            f.write(generated_code)
+                        
+                        return f"""💻 Code Generated with AI!
+
+Language: {language.title()}
+Task: {task}
+File: {filename}
+Location: {file_path}
+
+The code has been saved and is ready to use!
+Would you like me to:
+1. Open the file in your default editor
+2. Explain how the code works
+3. Generate additional examples?"""
+                except Exception as e:
+                    print(f"OpenAI API error: {e}")
             
             # Code generation templates
             code_templates = {
@@ -426,7 +514,14 @@ LIMIT 10;''',
                 
                 file_path = code_dir / filename
                 with open(file_path, 'w', encoding='utf-8') as f:
-                    f.write(code)
+                    try:
+                        f.write(code)
+                    except Exception as write_error:
+                        print(f"Error writing file: {write_error}")
+                        # Create directory if it doesn't exist
+                        code_dir.mkdir(parents=True, exist_ok=True)
+                        # Try again
+                        f.write(code)
                 
                 response = f"""💻 Code Generated Successfully!
 
@@ -508,6 +603,9 @@ Would you like me to:
     def handle_advanced_command(self, command):
         """Handle advanced feature commands"""
         command_lower = command.lower()
+
+        # Import sys for OpenAI checks
+        import sys
         
         # Screenshot automation
         if "screenshot every" in command_lower or "take screenshot every" in command_lower:
