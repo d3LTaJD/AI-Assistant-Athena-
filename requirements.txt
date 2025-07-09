@@ -1,11 +1,9 @@
 # Core dependencies for offline AI assistant
 pyttsx3==2.90
 SpeechRecognition==3.10.0
-pyaudio==0.2.11
-whisper==1.1.10
-torch==2.1.0
-transformers==4.35.0
-sentence-transformers==2.2.2
+pyaudio==0.2.13
+numpy==1.24.3
+webrtcvad==2.0.10
 
 # GUI Framework
 tkinter-modern==1.0.0
@@ -25,12 +23,10 @@ watchdog==3.0.0
 # System integration
 psutil==5.9.6
 pyautogui==0.9.54
-plyer==2.1.0
+pygame==2.5.2
 
 # Web features (optional)
 requests==2.31.0
-beautifulsoup4==4.12.2
-youtube-dl==2021.12.17
 
 # Packaging
 pyinstaller==6.1.0

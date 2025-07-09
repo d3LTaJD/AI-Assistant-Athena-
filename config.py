@@ -10,10 +10,12 @@ class Config:
         self.config_dir = Path.home() / ".ai_assistant"
         self.config_file = self.config_dir / "config.json"
         self.db_dir = self.config_dir / "database"
+        self.screenshots_dir = self.config_dir / "screenshots"
         
         # Create directories if they don't exist
         self.config_dir.mkdir(exist_ok=True)
         self.db_dir.mkdir(exist_ok=True)
+        self.screenshots_dir.mkdir(exist_ok=True)
         
         # Default configuration
         self.default_config = {
@@ -21,11 +23,14 @@ class Config:
             "wake_word": "assistant",
             "voice_type": "female",
             "voice_speed": 180,
-            "voice_volume": 0.8,
+            "voice_volume": 0.9,
+            "mic_sensitivity": 5,
             "theme": "dark",
             "auto_listen": True,
             "offline_mode": True,
-            "file_search_depth": 3,
+            "file_search_depth": 5,
+            "screenshot_interval": 120,  # Default 2 minutes
+            "screenshot_folder": str(self.screenshots_dir),
             "common_folders": {
                 "downloads": str(Path.home() / "Downloads"),
                 "documents": str(Path.home() / "Documents"),
