@@ -1,0 +1,32 @@
+# PC Athena AI Assistant Requirements
+# Core dependencies for full functionality
+
+# Text-to-Speech
+pyttsx3==2.90
+
+# Speech Recognition
+SpeechRecognition==3.10.0
+pyaudio==0.2.11
+
+# Web requests
+requests==2.31.0
+
+# Screenshot functionality
+pyautogui==0.9.54
+Pillow==10.1.0
+
+# Optional: Enhanced features (install if needed)
+# wikipedia==1.4.0
+# newsapi-python==0.2.6
+# openai==0.28.1
+
+# Development tools (optional)
+# pytest==7.4.3
+# black==23.11.0
+
+# Installation notes:
+# 1. Install Python 3.8+ from python.org
+# 2. Run: pip install -r requirements_pc.txt
+# 3. If pyaudio fails on Windows, try: pip install pipwin && pipwin install pyaudio
+# 4. On macOS, you might need: brew install portaudio
+# 5. On Linux (Ubuntu/Debian): sudo apt-get install python3-pyaudio portaudio19-dev
