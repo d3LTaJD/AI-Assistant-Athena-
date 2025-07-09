@@ -14,20 +14,36 @@ A comprehensive AI assistant with voice recognition, automated screenshots, imag
 - **Math & Conversions**: Perform calculations and unit conversions
 - **Entertainment**: Jokes, facts, coin flips, dice rolls
 
-## Installation
+## Installation Options
 
-1. **Clone the repository**:
+### Option 1: Run the Setup Script (Windows)
+
+1. Run `setup.py` to create a Windows installer:
    ```
-   git clone https://github.com/yourusername/ai-assistant.git
-   cd ai-assistant
+   python setup.py
    ```
 
-2. **Install dependencies**:
+2. This will create `AI_Assistant_Setup.exe` which you can share with others.
+
+### Option 2: Create a Portable Version
+
+1. Run `create_portable_version.py` to create a portable package:
+   ```
+   python create_portable_version.py
+   ```
+
+2. Share the resulting folder or ZIP file with others.
+
+### Option 3: Manual Installation
+
+1. Install Python 3.8+ from [python.org](https://python.org)
+
+2. Install dependencies:
    ```
    pip install -r requirements.txt
    ```
 
-3. **Run the assistant**:
+3. Run the assistant:
    ```
    python main.py
    ```
@@ -53,10 +69,31 @@ A comprehensive AI assistant with voice recognition, automated screenshots, imag
 - Python 3.8 or higher
 - See requirements.txt for all dependencies
 
+## Sharing with Others
+
+### For Technical Users
+Share the GitHub repository link and they can follow the installation instructions.
+
+### For Non-Technical Users
+1. Create the installer using `setup.py`
+2. Share the installer with them
+3. They just need to run the installer and the application will be ready to use
+
+### For Portable Use
+1. Create a portable version using `create_portable_version.py`
+2. Share the folder or ZIP file
+3. Users can run the application without installation
+
+## Troubleshooting
+
+- If voice recognition doesn't work, ensure PyAudio is installed:
+  - Windows: `pip install pipwin && pipwin install pyaudio`
+  - macOS: `brew install portaudio && pip install pyaudio`
+  - Linux: `sudo apt-get install python3-pyaudio portaudio19-dev`
+
+- If you see "module not found" errors, install the specific package:
+  - `pip install [package_name]`
+
 ## License
 
 MIT License
-
-## Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.

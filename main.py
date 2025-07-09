@@ -4,9 +4,8 @@ Main entry point for AI Assistant
 Detects environment and runs the appropriate version
 """
 
-import os
 import sys
-import platform
+import os
 
 def check_environment():
     """Check the current environment and capabilities"""
@@ -16,13 +15,9 @@ def check_environment():
     python_version = sys.version_info
     print(f"Python: {python_version.major}.{python_version.minor}.{python_version.micro}")
     
-    # Check platform
-    system = platform.system()
-    print(f"Platform: {system}")
-    
     # Check for key modules
     modules = {}
-    for module_name in ["speech_recognition", "pyttsx3", "requests", "PIL"]:
+    for module_name in ["speech_recognition", "pyttsx3", "requests"]:
         try:
             __import__(module_name)
             modules[module_name] = True
@@ -33,7 +28,6 @@ def check_environment():
     
     return {
         "python_version": python_version,
-        "system": system,
         "modules": modules
     }
 
