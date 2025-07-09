@@ -1,0 +1,28 @@
+# Application Icon Placeholder
+
+This directory needs an actual application icon file named `icon.ico`.
+
+## Requirements:
+- File name: `icon.ico`
+- Format: Windows ICO format
+- Size: 256x256 pixels (with multiple embedded sizes)
+- Design: Modern AI assistant theme
+
+## How to create:
+1. Design a 256x256 pixel image
+2. Use an online converter: https://convertio.co/png-ico/
+3. Save as `icon.ico` in this directory
+4. Replace this placeholder file
+
+## Suggested design elements:
+- 🤖 Robot/AI theme
+- 🎤 Microphone or sound waves
+- Modern, clean appearance
+- Good visibility at small sizes
+- Professional look
+
+The build process will use this icon for:
+- Application executable
+- Windows installer
+- Desktop shortcuts
+- Start menu entries

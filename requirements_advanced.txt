@@ -1,0 +1,68 @@
+# Advanced AI Assistant Requirements
+# Core dependencies for production-ready offline assistant
+
+# Enhanced Voice Recognition & Processing
+pyttsx3==2.90
+SpeechRecognition==3.10.0
+pyaudio==0.2.11
+webrtcvad==2.0.10
+numpy==1.24.3
+
+# Advanced GUI Framework
+customtkinter==5.2.0
+tkinter-modern==1.0.0
+Pillow==10.1.0
+pygame==2.5.2
+
+# Database & Security
+sqlite3
+bcrypt==4.0.1
+cryptography==41.0.7
+
+# System Integration & Monitoring
+psutil==5.9.6
+pyautogui==0.9.54
+plyer==2.1.0
+watchdog==3.0.0
+
+# File Operations & Path Handling
+glob2==0.7
+pathlib2==2.3.7
+send2trash==1.8.2
+
+# Web Features (Optional - for online features)
+requests==2.31.0
+beautifulsoup4==4.12.2
+youtube-dl==2021.12.17
+
+# Enhanced Math & Calculations
+sympy==1.12
+scipy==1.11.3
+
+# Natural Language Processing (Optional)
+nltk==3.8.1
+textblob==0.17.1
+
+# Packaging & Distribution
+pyinstaller==6.1.0
+auto-py-to-exe==2.41.0
+innosetup==6.2.2
+
+# Development & Testing
+python-dotenv==1.0.0
+pytest==7.4.3
+black==23.11.0
+
+# Platform-specific dependencies
+# Windows: pipwin (for PyAudio)
+# macOS: portaudio (brew install portaudio)
+# Linux: python3-pyaudio portaudio19-dev
+
+# Installation notes:
+# 1. Install Python 3.8+ from python.org
+# 2. Run: pip install -r requirements_advanced.txt
+# 3. Platform-specific audio setup:
+#    Windows: pip install pipwin && pipwin install pyaudio
+#    macOS: brew install portaudio && pip install pyaudio
+#    Linux: sudo apt-get install python3-pyaudio portaudio19-dev
+# 4. For voice activity detection: pip install webrtcvad
