@@ -153,7 +153,7 @@ athena-ai-assistant/
 
 4. **"Microphone not working"**
    - Check microphone permissions
-   - Install PyAudio: `pip install pyaudio`
+   - Install PyAudio: `python -m pip install pyaudio`
 
 5. **"Email sending failed"**
    - Use Gmail App Password, not regular password
