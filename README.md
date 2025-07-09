@@ -1,194 +1,211 @@
-# Athena AI Assistant 🎤🤖
+# 🤖 AI Assistant - Offline-First Desktop Application
 
-A comprehensive AI voice assistant built with Python that can perform various tasks through voice commands.
+A production-ready, offline-first desktop AI assistant built with Python. Features voice recognition, natural language processing, smart file management, and a modern GUI.
 
-## 🌟 Features
+## ✨ Features
 
-- 🔊 **Voice Recognition & Text-to-Speech**: Natural voice interaction
-- 🌐 **Web Search**: Google search and Wikipedia integration
-- 📰 **News Updates**: Latest news from various countries and categories
-- 🌤️ **Weather Information**: Real-time weather data for any city
-- 📧 **Email & Messaging**: Send emails and WhatsApp messages
-- 🤖 **AI Chat**: Integration with OpenAI's GPT for conversations
-- 🖼️ **Image Generation**: Create images using DALL-E
-- 📸 **Screenshots**: Take and save screenshots
-- 📋 **Task Management**: Remember and remind tasks
-- 🎲 **Entertainment**: Jokes, coin flips, and more
-- 💾 **Database Logging**: All activities logged to MySQL database
+### 🎤 **Voice & Speech**
+- **Voice Recognition**: Whisper-based offline speech recognition
+- **Text-to-Speech**: Natural-sounding male/female voices
+- **Wake Word**: Customizable wake word (e.g., "Jarvis", "Athena")
+- **Continuous Listening**: Always-on voice activation
 
-## 🛠️ Installation
+### 📁 **Smart File Management**
+- **Intelligent File Search**: Find files across all drives (C:, D:, E:, etc.)
+- **Natural Language**: "Open my resume from Documents" or "Play music from E drive"
+- **Recursive Search**: Deep file system search with configurable depth
+- **File Aliases**: Create shortcuts for frequently accessed folders
+- **Multiple Results**: Smart handling when multiple files match
 
-### Prerequisites
-- Python 3.8 or higher
-- MySQL Server
-- Microphone for voice input
+### 🖥️ **Modern GUI**
+- **Dark Theme**: Modern, eye-friendly interface
+- **Animated Avatar**: 3D assistant animation (customizable)
+- **Chat Interface**: WhatsApp-style conversation view
+- **Quick Actions**: One-click access to common tasks
+- **Settings Panel**: Customize voice, name, and preferences
 
-### Quick Setup
-1. **Clone the repository**
-   ```bash
-   git clone <repository-url>
-   cd athena-ai-assistant
-   ```
+### 💾 **Database & Persistence**
+- **SQLite Database**: Secure local data storage
+- **User Accounts**: Login/signup with encrypted passwords
+- **Chat History**: Persistent conversation memory
+- **File Aliases**: Custom folder shortcuts
+- **Settings Sync**: Preferences saved across sessions
 
-2. **Run the setup script**
-   ```bash
-   python setup.py
-   ```
+### 🌐 **Online Features** (Optional)
+- **YouTube Search**: Voice-activated YouTube searches
+- **Web Search**: Google search integration
+- **Weather Updates**: Current weather information
+- **News Feed**: Latest news updates
 
-3. **Configure API keys in `config.py`**
-   - OpenAI API key (for ChatGPT and DALL-E)
-   - NewsAPI key (for news updates)
-   - OpenWeatherMap API key (for weather)
+## 🚀 Installation
 
-4. **Set up email credentials in `secrets_1.py`**
-   - Gmail address and app password
+### Option 1: Download Installer (Recommended)
+1. Download `AI_Assistant_Setup.exe` from releases
+2. Run the installer and follow the setup wizard
+3. Launch from desktop shortcut or Start menu
 
-5. **Create database and tables**
-   ```bash
-   python database_setup.py
-   ```
+### Option 2: Build from Source
+```bash
+# Clone repository
+git clone https://github.com/yourusername/ai-assistant.git
+cd ai-assistant
 
-6. **Start Athena**
-   ```bash
-   python Athena.py
-   ```
+# Install dependencies
+pip install -r requirements.txt
 
-## 🎯 Usage
-
-### Wake Word
-Say **"Athena"** followed by your command.
-
-### Available Commands
-
-#### Basic Information
-- **"Athena, what time is it?"** - Get current time
-- **"Athena, what's the date?"** - Get current date
-
-#### Search & Information
-- **"Athena, search Wikipedia for [topic]"** - Search Wikipedia
-- **"Athena, search for [query]"** - Google search
-- **"Athena, news"** - Get latest news
-- **"Athena, weather"** - Get weather information
-
-#### Communication
-- **"Athena, send email"** - Send an email
-- **"Athena, send message"** - Send WhatsApp message
-
-#### AI Features
-- **"Athena, chat"** - Start conversation with GPT
-- **"Athena, generate image of [description]"** - Create AI image
-
-#### Utilities
-- **"Athena, take screenshot"** - Capture screen
-- **"Athena, read"** - Read clipboard content
-- **"Athena, open [documents/music/pictures/videos]"** - Open folders
-
-#### Task Management
-- **"Athena, remember [task]"** - Save a task
-- **"Athena, remind me"** - List saved tasks
-
-#### Entertainment
-- **"Athena, tell me a joke"** - Get a random joke
-- **"Athena, flip a coin"** - Flip a virtual coin
-
-#### Control
-- **"Athena, quit"** or **"Athena, exit"** - Stop the assistant
-
-## 🔧 Configuration
-
-### API Keys Required
-1. **OpenAI API Key**: For ChatGPT and DALL-E features
-   - Get from: https://platform.openai.com/api-keys
-   
-2. **NewsAPI Key**: For news updates
-   - Get from: https://newsapi.org/register
-   
-3. **OpenWeatherMap API Key**: For weather information
-   - Get from: https://openweathermap.org/api
-
-### Email Setup
-For Gmail integration:
-1. Enable 2-factor authentication
-2. Generate an App Password (not your regular password)
-3. Use the App Password in `secrets_1.py`
-
-### Database Configuration
-- Default: MySQL on localhost
-- Database name: `athenadb`
-- Modify `DB_CONFIG` in `config.py` if needed
-
-## 📁 Project Structure
-
+# Run application
+python main.py
 ```
-athena-ai-assistant/
-├── Athena.py              # Main application
-├── Athenavoice.py         # Text-to-speech module
-├── config.py              # Configuration settings
-├── secrets_1.py           # Email credentials
-├── database_setup.py      # Database initialization
-├── setup.py              # Installation script
+
+## 🛠️ First Time Setup
+
+1. **Assistant Name**: Choose your assistant's name (e.g., Jarvis, Athena, Alex)
+2. **Voice Preference**: Select male or female voice
+3. **Account Creation**: Create your user account
+4. **Permissions**: Grant microphone access for voice features
+
+## 💬 Usage Examples
+
+### File Operations
+```
+"Open my Downloads folder"
+"Find resume.pdf on C drive"
+"Play music from E drive"
+"Show pictures from Desktop"
+"Open my workspace folder"
+```
+
+### System Commands
+```
+"What time is it?"
+"What's today's date?"
+"Calculate 15 * 7 + 23"
+"Tell me a joke"
+"Flip a coin"
+```
+
+### Web Features (Requires Internet)
+```
+"Search YouTube for Python tutorials"
+"Search web for AI news"
+"What's the weather like?"
+"Show me the latest news"
+```
+
+### Assistant Management
+```
+"Change name to Jarvis"
+"Change voice to male"
+"Show my chat history"
+"Help me with commands"
+```
+
+## ⚙️ Configuration
+
+### Assistant Settings
+- **Name & Wake Word**: Customize in Settings panel
+- **Voice Type**: Male/Female with natural speech
+- **Voice Speed**: Adjustable speech rate
+- **File Search Depth**: Configure how deep to search folders
+
+### File Aliases
+Create shortcuts for frequently used folders:
+```python
+# Examples automatically created:
+"downloads" → C:\Users\YourName\Downloads
+"documents" → C:\Users\YourName\Documents
+"workspace" → C:\Users\YourName\Projects
+```
+
+### Database Location
+- **Windows**: `%USERPROFILE%\.ai_assistant\`
+- **macOS**: `~/.ai_assistant/`
+- **Linux**: `~/.ai_assistant/`
+
+## 🔧 Development
+
+### Project Structure
+```
+ai-assistant/
+├── main.py                 # Application entry point
+├── gui.py                  # Modern GUI interface
+├── voice_handler.py        # Voice recognition & TTS
+├── file_handler.py         # Smart file operations
+├── command_processor.py    # Command parsing & execution
+├── database.py            # SQLite database management
+├── config.py              # Configuration management
+├── first_time_setup.py    # Initial setup wizard
+├── build_installer.py     # Build script for installer
 ├── requirements.txt       # Python dependencies
-├── screenshots/          # Screenshot storage
-└── README.md             # This file
+└── assets/                # Icons and resources
 ```
+
+### Building Installer
+```bash
+# Install build dependencies
+pip install pyinstaller
+
+# Create Windows installer
+python build_installer.py
+```
+
+### Adding New Commands
+1. Add command logic to `command_processor.py`
+2. Update help text in `show_help()` method
+3. Test with both voice and text input
+
+## 🔒 Privacy & Security
+
+- **Offline-First**: Core functionality works without internet
+- **Local Storage**: All data stored locally on your computer
+- **Encrypted Passwords**: User passwords hashed with bcrypt
+- **No Telemetry**: No data sent to external servers
+- **Open Source**: Full source code available for review
 
 ## 🐛 Troubleshooting
 
-### Common Issues
+### Voice Recognition Issues
+- **Check Microphone**: Ensure microphone is connected and working
+- **Permissions**: Grant microphone access to the application
+- **Background Noise**: Use in quiet environment for better recognition
+- **Fallback**: Use text input if voice doesn't work
 
-1. **"spaCy model not found"**
-   ```bash
-   python -m spacy download en_core_web_sm
-   ```
+### File Search Problems
+- **Permissions**: Ensure application has file system access
+- **Path Issues**: Check if drives/folders exist and are accessible
+- **Search Depth**: Increase search depth in settings if files not found
 
-2. **"NLTK data not found"**
-   ```bash
-   python -m nltk.downloader punkt
-   ```
+### Installation Issues
+- **Python Version**: Requires Python 3.8 or higher
+- **Dependencies**: Run `pip install -r requirements.txt`
+- **Windows Defender**: May flag executable, add to exclusions
 
-3. **"MySQL connection failed"**
-   - Ensure MySQL server is running
-   - Check credentials in `config.py`
-   - Run `database_setup.py`
+## 📝 License
 
-4. **"Microphone not working"**
-   - Check microphone permissions
-   - Install PyAudio: `python -m pip install pyaudio`
-
-5. **"Email sending failed"**
-   - Use Gmail App Password, not regular password
-   - Enable 2-factor authentication
-
-## 🔒 Security Notes
-
-- Never commit API keys or passwords to version control
-- Use environment variables for sensitive data in production
-- Keep your `secrets_1.py` file private
+This project is licensed under the MIT License - see the [LICENSE.txt](LICENSE.txt) file for details.
 
 ## 🤝 Contributing
 
 1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Test thoroughly
-5. Submit a pull request
-
-## 📄 License
-
-This project is licensed under the MIT License.
-
-## 👨‍💻 Author
-
-**Jeet Dodia**
-- Email: jeetdodia12@gmail.com
-- GitHub: [d3LTaJD](https://github.com/d3LTaJD)
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
 ## 🙏 Acknowledgments
 
-- OpenAI for GPT and DALL-E APIs
-- Google for Speech Recognition
-- All the amazing Python libraries used in this project
+- **Speech Recognition**: Google Speech Recognition API
+- **Text-to-Speech**: pyttsx3 library
+- **GUI Framework**: CustomTkinter for modern interface
+- **Voice Processing**: Whisper for offline speech recognition
+- **Database**: SQLite for local data storage
+
+## 📞 Support
+
+- **Issues**: [GitHub Issues](https://github.com/yourusername/ai-assistant/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/yourusername/ai-assistant/discussions)
+- **Email**: support@ai-assistant.com
 
 ---
 
-**Note**: This is a prototype/educational project. Use responsibly and ensure you comply with all API terms of service.
+**Made with ❤️ for productivity and automation**

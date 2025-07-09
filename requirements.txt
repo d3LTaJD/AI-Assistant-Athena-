@@ -1,23 +1,40 @@
+# Core dependencies for offline AI assistant
 pyttsx3==2.90
 SpeechRecognition==3.10.0
 pyaudio==0.2.11
-pyautogui==0.9.54
-wikipedia==1.4.0
-pywhatkit==5.4
-requests==2.31.0
-newsapi-python==0.2.6
-clipboard==0.0.4
-pyjokes==0.6.0
-spacy==3.7.2
-nltk==3.8.1
-openai==0.28.1
-selenium==4.15.2
-pyscreeze==0.1.29
-click==8.1.7
-mysql-connector-python==8.2.0
-pygame==2.5.2
-edge-tts==6.1.9
+whisper==1.1.10
+torch==2.1.0
+transformers==4.35.0
+sentence-transformers==2.2.2
 
-# After installing requirements, run these commands:
-# python -m nltk.downloader punkt
-# python -m spacy download en_core_web_sm
+# GUI Framework
+tkinter-modern==1.0.0
+customtkinter==5.2.0
+Pillow==10.1.0
+pygame==2.5.2
+
+# Database
+sqlite3
+bcrypt==4.0.1
+
+# File operations
+glob2==0.7
+pathlib2==2.3.7
+watchdog==3.0.0
+
+# System integration
+psutil==5.9.6
+pyautogui==0.9.54
+plyer==2.1.0
+
+# Web features (optional)
+requests==2.31.0
+beautifulsoup4==4.12.2
+youtube-dl==2021.12.17
+
+# Packaging
+pyinstaller==6.1.0
+auto-py-to-exe==2.41.0
+
+# Development
+python-dotenv==1.0.0
