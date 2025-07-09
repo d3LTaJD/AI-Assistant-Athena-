@@ -22,6 +22,7 @@ from file_handler import file_handler
 from advanced_voice_handler import advanced_voice_handler
 from database import db
 from config import config
+from advanced_features import AdvancedFeatures
 
 class SmartCommandProcessor:
     def __init__(self, user_id):
@@ -31,6 +32,9 @@ class SmartCommandProcessor:
         self.assistant_name = config.get('assistant_name', 'Assistant')
         self.user_preferences = self.load_user_preferences()
         self.command_history = []
+        
+        # Initialize advanced features
+        self.advanced_features = AdvancedFeatures(advanced_voice_handler, config)
         
         # Initialize smart features
         self.setup_smart_responses()
@@ -49,7 +53,7 @@ class SmartCommandProcessor:
                 "There you go!", "Mission accomplished!"
             ],
             'thinking': [
-                "Let me think about that...",
+                "Let me work on that...",
                 "Processing your request...",
                 "Working on it...",
                 "Give me a moment..."
@@ -80,7 +84,6 @@ class SmartCommandProcessor:
     def load_user_preferences(self):
         """Load user preferences and learning data"""
         try:
-            # This would load from database in a real implementation
             return {
                 'preferred_browser': 'default',
                 'common_folders': config.get('common_folders', {}),
@@ -91,7 +94,7 @@ class SmartCommandProcessor:
             return {}
     
     def process_command(self, command):
-        """Process user command with advanced intelligence"""
+        """Process user command with enhanced intelligence and advanced features"""
         command = command.lower().strip()
         self.command_history.append(command)
         
@@ -100,9 +103,14 @@ class SmartCommandProcessor:
             self.command_history = self.command_history[-10:]
         
         try:
+            # Check for advanced features first
+            advanced_response = self.advanced_features.handle_advanced_command(command)
+            if advanced_response:
+                self.save_interaction(command, advanced_response)
+                return advanced_response
+            
             # Context-aware processing
             response = self.process_with_context(command)
-            
             if response:
                 self.save_interaction(command, str(response))
                 return response
@@ -141,10 +149,22 @@ class SmartCommandProcessor:
         return None
     
     def process_main_command(self, command):
-        """Main command processing with advanced features"""
+        """Main command processing with enhanced features"""
         # Greeting detection
         if any(greeting in command for greeting in ['hello', 'hi', 'hey', 'good morning', 'good afternoon', 'good evening']):
             return self.handle_greeting(command)
+        
+        # Advanced automation commands
+        if any(keyword in command for keyword in ['every', 'automatically', 'schedule', 'repeat']):
+            return self.handle_automation_commands(command)
+        
+        # Image generation commands
+        if any(keyword in command for keyword in ['generate image', 'create image', 'make image', 'draw', 'picture of']):
+            return self.handle_image_generation(command)
+        
+        # Code generation commands
+        if any(keyword in command for keyword in ['write code', 'generate code', 'create function', 'program', 'script']):
+            return self.handle_code_generation(command)
         
         # File/folder operations (enhanced)
         if any(keyword in command for keyword in ['open', 'find', 'search', 'play', 'show', 'launch', 'run', 'execute']):
@@ -218,6 +238,34 @@ class SmartCommandProcessor:
         else:
             return self.generate_intelligent_response(command)
     
+    def handle_automation_commands(self, command):
+        """Handle automation and scheduling commands"""
+        if "screenshot" in command and "every" in command:
+            return self.advanced_features.handle_scheduled_screenshots(command)
+        elif "backup" in command and ("every" in command or "automatically" in command):
+            return "🔄 Automated backup feature coming soon! I'll help you backup files automatically."
+        elif "clean" in command and ("every" in command or "automatically" in command):
+            return "🧹 Automated cleanup feature coming soon! I'll help you clean temporary files regularly."
+        else:
+            return "I can help you automate tasks like:\n• Screenshots every X minutes\n• File backups\n• System cleanup\n• Data synchronization"
+    
+    def handle_image_generation(self, command):
+        """Handle image generation requests"""
+        # Extract the image description
+        prompt = command
+        for phrase in ["generate image of", "create image of", "make image of", "draw", "picture of"]:
+            prompt = prompt.replace(phrase, "")
+        prompt = prompt.strip()
+        
+        if not prompt:
+            return "What image would you like me to generate? For example: 'generate image of a sunset over mountains'"
+        
+        return self.advanced_features.generate_image(prompt)
+    
+    def handle_code_generation(self, command):
+        """Handle code generation requests"""
+        return self.advanced_features.generate_code(command)
+    
     def handle_greeting(self, command):
         """Handle greetings with personality"""
         hour = datetime.now().hour
@@ -261,7 +309,6 @@ class SmartCommandProcessor:
     
     def get_file_suggestions(self, command):
         """Get smart file suggestions"""
-        # Extract potential filename from command
         words = command.split()
         potential_files = []
         
@@ -273,6 +320,70 @@ class SmartCommandProcessor:
             return f"• Try searching for: {', '.join(potential_files)}\n• Check your recent files\n• Make sure the file exists"
         
         return None
+    
+    def show_enhanced_help(self):
+        """Show comprehensive help with new features"""
+        help_text = f"""
+🤖 {self.assistant_name} - Advanced AI Assistant
+
+📁 FILE OPERATIONS:
+• "Open Downloads folder" - Open any folder
+• "Find resume.pdf on C drive" - Search for files
+• "Play music from Music folder" - Launch media
+
+🤖 AI FEATURES:
+• "Generate image of a sunset" - Create AI images
+• "Write Python code to sort a list" - Generate code
+• "Create HTML contact form" - Web development
+
+🔄 AUTOMATION:
+• "Take screenshot every 2 minutes" - Automated tasks
+• "Save screenshots to D drive" - Custom locations
+• "Stop taking screenshots" - Control automation
+
+🖥️ SYSTEM MONITORING:
+• "System status" - CPU, memory, uptime
+• "System performance" - Detailed metrics
+• "Running processes" - Active applications
+
+⏰ TIME & DATE:
+• "What time is it?" - Current time
+• "What's today's date?" - Current date
+• "Time in 24 hour format" - Military time
+
+🧮 MATH & CONVERSIONS:
+• "Calculate 15 + 25 * 3" - Complex math
+• "Convert 100 celsius to fahrenheit" - Units
+
+🌐 WEB & SEARCH:
+• "Search YouTube for cats" - Video search
+• "Search web for Python tutorials" - Web search
+
+🎮 ENTERTAINMENT:
+• "Tell me a joke" - Contextual humor
+• "Random fact" - Interesting facts
+• "Flip a coin" - Random decisions
+
+📸 UTILITIES:
+• "Take screenshot" - Screen capture
+• "Random number between 1 and 100" - RNG
+
+⚙️ ASSISTANT SETTINGS:
+• "Change name to Jarvis" - Rename assistant
+• "Change voice to male/female" - Voice type
+
+💡 ADVANCED EXAMPLES:
+• "Generate image of a futuristic city with flying cars"
+• "Write JavaScript code for a todo application"
+• "Take screenshot every 5 minutes and save to E drive"
+• "Create Python function to calculate fibonacci numbers"
+
+Just speak naturally! I understand context and can help with complex requests.
+        """
+        return help_text.strip()
+    
+    # Include all other methods from the original smart_command_processor.py
+    # (handle_system_operations, handle_time_operations, etc.)
     
     def handle_system_operations(self, command):
         """Handle system-related operations"""
@@ -335,46 +446,6 @@ class SmartCommandProcessor:
             result += f"{i}. {proc['name']} - CPU: {proc['cpu_percent']:.1f}%, Memory: {proc['memory_percent']:.1f}%\n"
         
         return result
-    
-    def get_network_info(self):
-        """Get network information"""
-        try:
-            hostname = socket.gethostname()
-            local_ip = socket.gethostbyname(hostname)
-            
-            # Get network interfaces
-            interfaces = psutil.net_if_addrs()
-            
-            info = f"""🌐 Network Information:
-• Hostname: {hostname}
-• Local IP: {local_ip}
-• Network Interfaces: {len(interfaces)}"""
-            
-            # Add interface details
-            for interface, addresses in list(interfaces.items())[:3]:  # Show first 3
-                info += f"\n• {interface}: "
-                for addr in addresses:
-                    if addr.family == socket.AF_INET:
-                        info += f"{addr.address}"
-                        break
-            
-            return info
-        except Exception as e:
-            return f"Network information unavailable: {str(e)}"
-    
-    def get_disk_info(self):
-        """Get disk usage information"""
-        info = "💾 Disk Usage:\n"
-        
-        for device, usage in self.system_info['disk_usage'].items():
-            total_gb = self.bytes_to_gb(usage['total'])
-            used_gb = self.bytes_to_gb(usage['used'])
-            free_gb = self.bytes_to_gb(usage['free'])
-            used_percent = (usage['used'] / usage['total']) * 100
-            
-            info += f"• {device} {used_gb:.1f}GB / {total_gb:.1f}GB ({used_percent:.1f}% used, {free_gb:.1f}GB free)\n"
-        
-        return info
     
     def bytes_to_gb(self, bytes_value):
         """Convert bytes to gigabytes"""
@@ -470,12 +541,6 @@ class SmartCommandProcessor:
             ('pounds', 'kg'): lambda x: x / 2.20462,
             ('grams', 'ounces'): lambda x: x * 0.035274,
             ('ounces', 'grams'): lambda x: x / 0.035274,
-            
-            # Volume
-            ('liters', 'gallons'): lambda x: x * 0.264172,
-            ('gallons', 'liters'): lambda x: x / 0.264172,
-            ('ml', 'fl oz'): lambda x: x * 0.033814,
-            ('fl oz', 'ml'): lambda x: x / 0.033814,
         }
         
         # Parse conversion command
@@ -513,37 +578,21 @@ class SmartCommandProcessor:
         
         return "Please use format: convert [number] [from_unit] to [to_unit]"
     
-    def handle_random_operations(self, command):
-        """Handle random operations"""
-        if 'number' in command:
-            # Extract range if specified
-            words = command.split()
-            if 'between' in words:
-                try:
-                    between_idx = words.index('between')
-                    start = int(words[between_idx + 1])
-                    end = int(words[between_idx + 3])  # Skip 'and'
-                    result = random.randint(start, end)
-                    return f"Random number between {start} and {end}: {result}"
-                except:
-                    pass
-            
-            # Default range
-            result = random.randint(1, 100)
-            return f"Random number: {result}"
-        
-        elif 'choice' in command or 'pick' in command or 'choose' in command:
-            # Extract options
-            options_part = command.split('between')[-1] if 'between' in command else command
-            options = [opt.strip() for opt in re.split(r'[,\s]+or\s+|\s+and\s+|,', options_part) if opt.strip()]
-            
-            if len(options) > 1:
-                choice = random.choice(options)
-                return f"I choose: {choice}"
+    def handle_web_operations(self, command):
+        """Enhanced web operations"""
+        try:
+            if 'youtube' in command:
+                search_term = command.replace('youtube', '').replace('search', '').strip()
+                url = f"https://www.youtube.com/results?search_query={search_term.replace(' ', '+')}"
+                webbrowser.open(url)
+                return f"🎥 Opened YouTube search for: {search_term}"
             else:
-                return "Please provide options to choose from, like: 'pick between pizza or burgers'"
-        
-        return "What would you like me to randomize? Try: random number, or pick between options"
+                search_term = command.replace('search web', '').replace('google', '').strip()
+                url = f"https://www.google.com/search?q={search_term.replace(' ', '+')}"
+                webbrowser.open(url)
+                return f"🔍 Opened web search for: {search_term}"
+        except Exception as e:
+            return "Sorry, I couldn't perform the web search. Please check your internet connection."
     
     def handle_entertainment(self, command):
         """Enhanced entertainment features"""
@@ -639,121 +688,6 @@ class SmartCommandProcessor:
         except Exception as e:
             return f"Screenshot failed: {str(e)}"
     
-    def generate_intelligent_response(self, command):
-        """Generate intelligent response for unrecognized commands"""
-        # Analyze command for intent
-        if '?' in command:
-            return f"I'm not sure about that question. Could you rephrase it or ask me something else?"
-        
-        # Suggest similar commands
-        suggestions = self.get_command_suggestions(command)
-        
-        response = f"I didn't understand '{command}'. "
-        if suggestions:
-            response += f"Did you mean: {suggestions}?"
-        else:
-            response += "Try saying 'help' to see what I can do."
-        
-        return response
-    
-    def get_command_suggestions(self, command):
-        """Get command suggestions based on similarity"""
-        common_commands = [
-            "open downloads", "what time is it", "take screenshot",
-            "system status", "tell me a joke", "calculate", "search web"
-        ]
-        
-        # Simple similarity check
-        for cmd in common_commands:
-            if any(word in cmd for word in command.split()):
-                return cmd
-        
-        return None
-    
-    def show_enhanced_help(self):
-        """Show comprehensive help with categories"""
-        help_text = f"""
-🤖 {self.assistant_name} - Advanced AI Assistant
-
-📁 FILE OPERATIONS:
-• "Open Downloads folder" - Open any folder
-• "Find resume.pdf on C drive" - Search for files
-• "Play music from Music folder" - Launch media
-• "Show pictures from Desktop" - Browse images
-
-🖥️ SYSTEM MONITORING:
-• "System status" - CPU, memory, uptime
-• "System performance" - Detailed performance
-• "Running processes" - Active applications
-• "Network info" - Network configuration
-• "Disk info" - Storage usage
-
-⏰ TIME & DATE:
-• "What time is it?" - Current time
-• "What's today's date?" - Current date
-• "Time in 24 hour format" - Military time
-• "What's tomorrow's date?" - Future dates
-
-🧮 MATH & CONVERSIONS:
-• "Calculate 15 + 25 * 3" - Complex math
-• "Convert 100 celsius to fahrenheit" - Units
-• "What's the square root of 144?" - Functions
-
-🌐 WEB & SEARCH:
-• "Search YouTube for cats" - Video search
-• "Search web for Python tutorials" - Web search
-• "Get weather" - Weather information
-• "Show news" - Latest news
-
-🎮 ENTERTAINMENT:
-• "Tell me a joke" - Contextual humor
-• "Give me a riddle" - Brain teasers
-• "Random fact" - Interesting facts
-• "Inspirational quote" - Motivation
-• "Flip a coin" - Random decisions
-• "Roll dice" - Gaming
-
-📸 UTILITIES:
-• "Take screenshot" - Screen capture
-• "Random number between 1 and 100" - RNG
-• "Pick between pizza or burgers" - Decisions
-
-⚙️ ASSISTANT SETTINGS:
-• "Change name to Jarvis" - Rename assistant
-• "Change voice to male/female" - Voice type
-• "Show history" - Recent conversations
-• "Remember [something]" - Save notes
-
-💡 SMART FEATURES:
-• Context awareness - Remembers conversation
-• Natural language - Speak naturally
-• Room-scale voice - Works from across the room
-• Learning - Adapts to your preferences
-
-Just speak naturally! I understand context and can help with complex requests.
-        """
-        return help_text.strip()
-    
-    def save_interaction(self, prompt, response):
-        """Save interaction with enhanced metadata"""
-        try:
-            # Add to conversation context
-            self.conversation_context.append({
-                'prompt': prompt,
-                'response': response,
-                'timestamp': datetime.now().isoformat()
-            })
-            
-            # Keep only last 20 interactions in memory
-            if len(self.conversation_context) > 20:
-                self.conversation_context = self.conversation_context[-20:]
-            
-            # Save to database
-            db.save_chat_history(self.user_id, prompt, str(response))
-        except Exception as e:
-            print(f"Error saving interaction: {e}")
-    
-    # Additional methods for other features...
     def flip_coin(self):
         result = random.choice(["Heads", "Tails"])
         return f"🪙 The coin landed on {result}!"
@@ -779,31 +713,50 @@ Just speak naturally! I understand context and can help with complex requests.
             total = sum(results)
             return f"🎲 {num_dice} dice rolled: {results} (Total: {total})"
     
-    def show_history(self):
-        """Show enhanced chat history"""
-        if not self.conversation_context:
-            return "No recent conversation history."
+    def handle_random_operations(self, command):
+        """Handle random operations"""
+        if 'number' in command:
+            # Extract range if specified
+            words = command.split()
+            if 'between' in words:
+                try:
+                    between_idx = words.index('between')
+                    start = int(words[between_idx + 1])
+                    end = int(words[between_idx + 3])  # Skip 'and'
+                    result = random.randint(start, end)
+                    return f"Random number between {start} and {end}: {result}"
+                except:
+                    pass
+            
+            # Default range
+            result = random.randint(1, 100)
+            return f"Random number: {result}"
         
-        response = "📜 Recent Conversations:\n"
-        for i, interaction in enumerate(self.conversation_context[-10:], 1):
-            timestamp = interaction['timestamp'][:19]
-            prompt = interaction['prompt'][:50] + "..." if len(interaction['prompt']) > 50 else interaction['prompt']
-            response += f"{i}. [{timestamp}] {prompt}\n"
+        elif 'choice' in command or 'pick' in command or 'choose' in command:
+            # Extract options
+            options_part = command.split('between')[-1] if 'between' in command else command
+            options = [opt.strip() for opt in re.split(r'[,\s]+or\s+|\s+and\s+|,', options_part) if opt.strip()]
+            
+            if len(options) > 1:
+                choice = random.choice(options)
+                return f"I choose: {choice}"
+            else:
+                return "Please provide options to choose from, like: 'pick between pizza or burgers'"
         
-        return response
+        return "What would you like me to randomize? Try: random number, or pick between options"
     
-    # Placeholder methods for future features
-    def handle_smart_home(self, command):
-        return "Smart home features are not yet implemented, but I'm ready to control your devices!"
-    
-    def handle_scheduling(self, command):
-        return "Scheduling features are coming soon! I'll help you manage your calendar."
-    
-    def handle_communication(self, command):
-        return "Communication features are in development. I'll help you send messages and emails."
-    
-    def handle_learning_requests(self, command):
-        return "I'm always learning! Ask me specific questions and I'll do my best to help."
+    def change_assistant_name(self, command):
+        """Change assistant name with confirmation"""
+        words = command.split()
+        if 'to' in words:
+            name_index = words.index('to') + 1
+            if name_index < len(words):
+                new_name = ' '.join(words[name_index:]).title()
+                config.update_assistant_name(new_name)
+                self.assistant_name = new_name
+                return f"Perfect! My name is now {new_name}. You can call me {new_name} from now on!"
+        
+        return "What would you like to call me? Say something like 'change name to Jarvis'"
     
     def handle_voice_operations(self, command):
         if 'male' in command:
@@ -829,35 +782,6 @@ Just speak naturally! I understand context and can help with complex requests.
         else:
             return "What would you like me to remember?"
     
-    def change_assistant_name(self, command):
-        """Change assistant name with confirmation"""
-        words = command.split()
-        if 'to' in words:
-            name_index = words.index('to') + 1
-            if name_index < len(words):
-                new_name = ' '.join(words[name_index:]).title()
-                config.update_assistant_name(new_name)
-                self.assistant_name = new_name
-                return f"Perfect! My name is now {new_name}. You can call me {new_name} from now on!"
-        
-        return "What would you like to call me? Say something like 'change name to Jarvis'"
-    
-    def handle_web_operations(self, command):
-        """Enhanced web operations"""
-        try:
-            if 'youtube' in command:
-                search_term = command.replace('youtube', '').replace('search', '').strip()
-                url = f"https://www.youtube.com/results?search_query={search_term.replace(' ', '+')}"
-                webbrowser.open(url)
-                return f"🎥 Opened YouTube search for: {search_term}"
-            else:
-                search_term = command.replace('search web', '').replace('google', '').strip()
-                url = f"https://www.google.com/search?q={search_term.replace(' ', '+')}"
-                webbrowser.open(url)
-                return f"🔍 Opened web search for: {search_term}"
-        except Exception as e:
-            return "Sorry, I couldn't perform the web search. Please check your internet connection."
-    
     def handle_weather_request(self, command):
         """Weather request handler (placeholder for API integration)"""
         return "🌤️ Weather feature requires API setup. This would show current weather conditions."
@@ -865,3 +789,79 @@ Just speak naturally! I understand context and can help with complex requests.
     def handle_news_request(self):
         """News request handler (placeholder for API integration)"""
         return "📰 News feature requires API setup. This would show latest news headlines."
+    
+    def handle_smart_home(self, command):
+        return "Smart home features are not yet implemented, but I'm ready to control your devices!"
+    
+    def handle_scheduling(self, command):
+        return "Scheduling features are coming soon! I'll help you manage your calendar."
+    
+    def handle_communication(self, command):
+        return "Communication features are in development. I'll help you send messages and emails."
+    
+    def handle_learning_requests(self, command):
+        return "I'm always learning! Ask me specific questions and I'll do my best to help."
+    
+    def show_history(self):
+        """Show enhanced chat history"""
+        if not self.conversation_context:
+            return "No recent conversation history."
+        
+        response = "📜 Recent Conversations:\n"
+        for i, interaction in enumerate(self.conversation_context[-10:], 1):
+            timestamp = interaction['timestamp'][:19]
+            prompt = interaction['prompt'][:50] + "..." if len(interaction['prompt']) > 50 else interaction['prompt']
+            response += f"{i}. [{timestamp}] {prompt}\n"
+        
+        return response
+    
+    def generate_intelligent_response(self, command):
+        """Generate intelligent response for unrecognized commands"""
+        # Analyze command for intent
+        if '?' in command:
+            return f"I'm not sure about that question. Could you rephrase it or ask me something else?"
+        
+        # Suggest similar commands
+        suggestions = self.get_command_suggestions(command)
+        
+        response = f"I didn't understand '{command}'. "
+        if suggestions:
+            response += f"Did you mean: {suggestions}?"
+        else:
+            response += "Try saying 'help' to see what I can do."
+        
+        return response
+    
+    def get_command_suggestions(self, command):
+        """Get command suggestions based on similarity"""
+        common_commands = [
+            "open downloads", "what time is it", "take screenshot",
+            "system status", "tell me a joke", "calculate", "search web",
+            "generate image", "write code"
+        ]
+        
+        # Simple similarity check
+        for cmd in common_commands:
+            if any(word in cmd for word in command.split()):
+                return cmd
+        
+        return None
+    
+    def save_interaction(self, prompt, response):
+        """Save interaction with enhanced metadata"""
+        try:
+            # Add to conversation context
+            self.conversation_context.append({
+                'prompt': prompt,
+                'response': response,
+                'timestamp': datetime.now().isoformat()
+            })
+            
+            # Keep only last 20 interactions in memory
+            if len(self.conversation_context) > 20:
+                self.conversation_context = self.conversation_context[-20:]
+            
+            # Save to database
+            db.save_chat_history(self.user_id, prompt, str(response))
+        except Exception as e:
+            print(f"Error saving interaction: {e}")
