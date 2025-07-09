@@ -1,36 +1,12 @@
-# Core dependencies for offline AI assistant
+# Core dependencies
 pyttsx3==2.90
 SpeechRecognition==3.10.0
-pyaudio==0.2.13
-numpy==1.24.3
-webrtcvad==2.0.10
-
-# GUI Framework
-tkinter-modern==1.0.0
-customtkinter==5.2.0
-Pillow==10.1.0
-pygame==2.5.2
-
-# Database
-sqlite3
-bcrypt==4.0.1
-
-# File operations
-glob2==0.7
-pathlib2==2.3.7
-watchdog==3.0.0
-
-# System integration
-psutil==5.9.6
-pyautogui==0.9.54
-pygame==2.5.2
-
-# Web features (optional)
 requests==2.31.0
+numpy==1.24.3
+Pillow==10.1.0
 
-# Packaging
-pyinstaller==6.1.0
-auto-py-to-exe==2.41.0
-
-# Development
-python-dotenv==1.0.0
+# Optional dependencies (install if needed)
+# pyaudio==0.2.13  # For voice recognition
+# pyautogui==0.9.54  # For screenshots
+# openai==0.28.1  # For AI image and code generation
+# psutil==5.9.6  # For system monitoring

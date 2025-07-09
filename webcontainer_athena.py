@@ -11,7 +11,6 @@ import time
 import datetime
 import random
 import math
-import sys
 from pathlib import Path
 
 # WebContainer-safe imports only
@@ -406,6 +405,49 @@ To enable code generation:
 2. Configure your API key
 3. Run on a regular Python environment"""
     
+    def simulate_screenshot(self, command=None):
+        """Simulate screenshot functionality"""
+        interval = 2  # Default interval in minutes
+        save_location = "Screenshots"  # Default location
+        
+        if command:
+            # Parse command for interval and location
+            words = command.lower().split()
+            
+            if "every" in words:
+                every_idx = words.index("every")
+                if every_idx + 1 < len(words):
+                    try:
+                        interval = int(words[every_idx + 1])
+                    except ValueError:
+                        pass
+            
+            if "save to" in command:
+                save_part = command.split("save to")[1].strip()
+                if "drive" in save_part:
+                    drive_letter = save_part.split()[0].upper()
+                    save_location = f"{drive_letter} Drive/Screenshots"
+                else:
+                    save_location = save_part
+        
+        timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        self.speak(f"Screenshot simulation: Taking screenshots every {interval} minutes and saving to {save_location}")
+        print(f"📸 Screenshot simulation at {timestamp}")
+        print(f"Interval: Every {interval} minutes")
+        print(f"Save location: {save_location}")
+        self.log_activity("screenshot_simulation", f"interval={interval}, location={save_location}")
+        
+        return f"""📸 Screenshot Automation Simulated!
+
+I would take screenshots every {interval} minutes and save them to {save_location}.
+
+In a full installation with PyAutoGUI installed,
+actual screenshots would be taken automatically.
+
+To enable actual screenshots:
+1. Install PyAutoGUI: pip install pyautogui
+2. Run on a regular Python environment"""
+    
     def log_activity(self, action, details):
         """Log user activities"""
         timestamp = datetime.datetime.now().isoformat()
@@ -439,7 +481,7 @@ To enable code generation:
     def show_help(self):
         """Show available commands"""
         help_text = """
-🤖 ATHENA AI ASSISTANT - WEBCONTAINER MODE
+🤖 ATHENA AI ASSISTANT - COMMANDS
 {'='*50}
 
 Available commands (say "athena" followed by):
@@ -452,13 +494,25 @@ Available commands (say "athena" followed by):
 - "calculate [expression]" - Perform math calculations
 - Example: "athena calculate 2 + 2 * 3"
 
-🎯 UTILITIES:
+📝 NOTES & REMINDERS:
+- "create note [content]" - Save a note
+- "show notes" - Display all notes
+- "remind me to [task]" - Create reminder
+- "show reminders" - Display active reminders
+
+🎯 ENTERTAINMENT:
 - "joke" - Tell a random joke
 - "flip coin" - Flip a virtual coin
+- "roll dice" - Roll dice
 - "random fact" - Share an interesting fact
 
+🤖 AI FEATURES (SIMULATED):
+- "generate image of [description]" - Create AI images
+- "write code for [description]" - Generate code
+- "take screenshot every [X] minutes" - Automated screenshots
+
 🔍 SIMULATED FEATURES:
-- "search [topic]" - Simulate search (limited in WebContainer)
+- "search [topic]" - Simulate search
 - "weather" - Weather info (simulated)
 - "news" - News updates (simulated)
 
@@ -470,12 +524,10 @@ Available commands (say "athena" followed by):
 💡 EXAMPLES:
 - "athena time"
 - "athena calculate 15 * 7"
+- "athena create note Buy groceries"
 - "athena tell me a joke"
-- "athena flip coin"
-- "athena help"
-
-⚠️ NOTE: This is WebContainer mode with limited functionality.
-For full features, run on a regular Python environment.
+- "athena generate image of a sunset over mountains"
+- "athena write code for a todo app"
 """
         print(help_text)
         self.speak("Help information displayed. Check the console for details.")
@@ -489,8 +541,6 @@ For full features, run on a regular Python environment.
         
         # Check for wake word
         if self.wake_word not in tokens:
-            self.speak("Please start your command with 'athena'")
-            return
             # For better UX, we'll still process some commands without wake word
             if query in ["help", "quit", "exit"]:
                 pass
@@ -505,7 +555,6 @@ For full features, run on a regular Python environment.
         elif "date" in tokens:
             self.get_date()
         
-        elif "calculate" in tokens or "math" in tokens:
         elif "calculate" in tokens or "math" in tokens or any(op in query for op in ["+", "-", "*", "/", "="]):
             self.calculate(query)
         
@@ -541,6 +590,15 @@ For full features, run on a regular Python environment.
         elif any(phrase in query for phrase in ["write code", "generate code", "create function", "write program"]):
             response = self.simulate_code_generation(query)
             self.speak(response)
+        
+        elif "screenshot" in tokens and "every" in tokens:
+            response = self.simulate_screenshot(query)
+            self.speak(response)
+        
+        elif "screenshot" in tokens:
+            self.speak("Taking a screenshot (simulated)")
+            print("📸 Screenshot simulation: This would take a real screenshot in a full installation")
+            self.log_activity("screenshot", "simulated")
         
         elif "search" in tokens:
             self.search_simulation(query)
@@ -580,7 +638,6 @@ For full features, run on a regular Python environment.
             greeting = "Good Night!"
         
         self.speak(f"{greeting} The time is {current_time}. Welcome to Athena AI Assistant!")
-        self.speak("I'm running in WebContainer mode with core functionality available.")
         
         # Show stats if we have any
         if self.notes or self.reminders:
@@ -621,8 +678,5 @@ def main():
         print(f"❌ Critical error: {e}")
         print("Please check your Python environment and try again.")
         
-if __name__ == "__main__":
-    main()
-
 if __name__ == "__main__":
     main()

@@ -1,165 +1,185 @@
 """
 Database handler for AI Assistant
 """
-import sqlite3
-import bcrypt
+import os
 import json
 from datetime import datetime
 from pathlib import Path
-from config import config
 
 class DatabaseManager:
     def __init__(self):
-        self.db_path = config.db_dir / "assistant.db"
+        self.db_dir = Path.home() / ".ai_assistant" / "database"
+        self.db_dir.mkdir(parents=True, exist_ok=True)
+        self.chat_history_file = self.db_dir / "chat_history.json"
+        self.users_file = self.db_dir / "users.json"
+        self.file_aliases_file = self.db_dir / "file_aliases.json"
+        
+        # Initialize database files
         self.init_database()
     
     def init_database(self):
-        """Initialize database tables"""
-        conn = sqlite3.connect(self.db_path)
-        cursor = conn.cursor()
+        """Initialize database files"""
+        # Chat history
+        if not self.chat_history_file.exists():
+            with open(self.chat_history_file, 'w') as f:
+                json.dump([], f)
         
-        # Users table
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS users (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                email TEXT UNIQUE NOT NULL,
-                password_hash TEXT NOT NULL,
-                assistant_name TEXT DEFAULT 'Assistant',
-                voice_preference TEXT DEFAULT 'female',
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                last_login TIMESTAMP
-            )
-        ''')
+        # Users
+        if not self.users_file.exists():
+            with open(self.users_file, 'w') as f:
+                json.dump([], f)
         
-        # Chat history table
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS chat_history (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                user_id INTEGER,
-                prompt TEXT NOT NULL,
-                response TEXT NOT NULL,
-                timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (user_id) REFERENCES users (id)
-            )
-        ''')
-        
-        # File aliases table
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS file_aliases (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                user_id INTEGER,
-                alias TEXT NOT NULL,
-                path TEXT NOT NULL,
-                FOREIGN KEY (user_id) REFERENCES users (id)
-            )
-        ''')
-        
-        # Settings table
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS user_settings (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                user_id INTEGER,
-                setting_key TEXT NOT NULL,
-                setting_value TEXT NOT NULL,
-                FOREIGN KEY (user_id) REFERENCES users (id)
-            )
-        ''')
-        
-        conn.commit()
-        conn.close()
+        # File aliases
+        if not self.file_aliases_file.exists():
+            with open(self.file_aliases_file, 'w') as f:
+                json.dump({}, f)
     
     def create_user(self, email, password, assistant_name="Assistant", voice_preference="female"):
         """Create a new user"""
-        conn = sqlite3.connect(self.db_path)
-        cursor = conn.cursor()
-        
         try:
-            # Hash password
-            password_hash = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
+            # Load existing users
+            with open(self.users_file, 'r') as f:
+                users = json.load(f)
             
-            cursor.execute('''
-                INSERT INTO users (email, password_hash, assistant_name, voice_preference)
-                VALUES (?, ?, ?, ?)
-            ''', (email, password_hash, assistant_name, voice_preference))
+            # Check if user already exists
+            for user in users:
+                if user.get('email') == email:
+                    return None  # User already exists
             
-            user_id = cursor.lastrowid
-            conn.commit()
+            # Create new user
+            user_id = len(users) + 1
+            new_user = {
+                "id": user_id,
+                "email": email,
+                "password_hash": password,  # In a real app, this would be hashed
+                "assistant_name": assistant_name,
+                "voice_preference": voice_preference,
+                "created_at": datetime.now().isoformat(),
+                "last_login": datetime.now().isoformat()
+            }
+            
+            users.append(new_user)
+            
+            # Save updated users
+            with open(self.users_file, 'w') as f:
+                json.dump(users, f, indent=2)
+            
             return user_id
-        except sqlite3.IntegrityError:
-            return None  # User already exists
-        finally:
-            conn.close()
+            
+        except Exception as e:
+            print(f"Error creating user: {e}")
+            return None
     
     def authenticate_user(self, email, password):
         """Authenticate user login"""
-        conn = sqlite3.connect(self.db_path)
-        cursor = conn.cursor()
-        
-        cursor.execute('SELECT id, password_hash, assistant_name FROM users WHERE email = ?', (email,))
-        result = cursor.fetchone()
-        
-        if result and bcrypt.checkpw(password.encode('utf-8'), result[1]):
-            # Update last login
-            cursor.execute('UPDATE users SET last_login = ? WHERE id = ?', 
-                         (datetime.now(), result[0]))
-            conn.commit()
-            conn.close()
-            return {"id": result[0], "assistant_name": result[2]}
-        
-        conn.close()
-        return None
+        try:
+            # Load users
+            with open(self.users_file, 'r') as f:
+                users = json.load(f)
+            
+            # Find user by email
+            for user in users:
+                if user.get('email') == email and user.get('password_hash') == password:
+                    # Update last login
+                    user['last_login'] = datetime.now().isoformat()
+                    
+                    # Save updated users
+                    with open(self.users_file, 'w') as f:
+                        json.dump(users, f, indent=2)
+                    
+                    return {
+                        "id": user['id'],
+                        "assistant_name": user.get('assistant_name', 'Assistant')
+                    }
+            
+            return None  # Authentication failed
+            
+        except Exception as e:
+            print(f"Error authenticating user: {e}")
+            return None
     
     def save_chat_history(self, user_id, prompt, response):
         """Save chat interaction to history"""
-        conn = sqlite3.connect(self.db_path)
-        cursor = conn.cursor()
-        
-        cursor.execute('''
-            INSERT INTO chat_history (user_id, prompt, response)
-            VALUES (?, ?, ?)
-        ''', (user_id, prompt, response))
-        
-        conn.commit()
-        conn.close()
+        try:
+            # Load existing history
+            with open(self.chat_history_file, 'r') as f:
+                history = json.load(f)
+            
+            # Add new entry
+            history.append({
+                "user_id": user_id,
+                "prompt": prompt,
+                "response": response,
+                "timestamp": datetime.now().isoformat()
+            })
+            
+            # Keep only last 1000 entries
+            if len(history) > 1000:
+                history = history[-1000:]
+            
+            # Save updated history
+            with open(self.chat_history_file, 'w') as f:
+                json.dump(history, f, indent=2)
+                
+        except Exception as e:
+            print(f"Error saving chat history: {e}")
     
     def get_chat_history(self, user_id, limit=50):
         """Get user's chat history"""
-        conn = sqlite3.connect(self.db_path)
-        cursor = conn.cursor()
-        
-        cursor.execute('''
-            SELECT prompt, response, timestamp FROM chat_history
-            WHERE user_id = ?
-            ORDER BY timestamp DESC
-            LIMIT ?
-        ''', (user_id, limit))
-        
-        results = cursor.fetchall()
-        conn.close()
-        return results
+        try:
+            # Load history
+            with open(self.chat_history_file, 'r') as f:
+                history = json.load(f)
+            
+            # Filter by user_id and get last 'limit' entries
+            user_history = [
+                (entry['prompt'], entry['response'], entry.get('timestamp', ''))
+                for entry in history
+                if entry.get('user_id') == user_id
+            ]
+            
+            return user_history[-limit:]
+            
+        except Exception as e:
+            print(f"Error getting chat history: {e}")
+            return []
     
     def add_file_alias(self, user_id, alias, path):
         """Add file/folder alias"""
-        conn = sqlite3.connect(self.db_path)
-        cursor = conn.cursor()
-        
-        cursor.execute('''
-            INSERT OR REPLACE INTO file_aliases (user_id, alias, path)
-            VALUES (?, ?, ?)
-        ''', (user_id, alias.lower(), path))
-        
-        conn.commit()
-        conn.close()
+        try:
+            # Load existing aliases
+            with open(self.file_aliases_file, 'r') as f:
+                aliases = json.load(f)
+            
+            # Initialize user's aliases if not exists
+            user_id_str = str(user_id)
+            if user_id_str not in aliases:
+                aliases[user_id_str] = {}
+            
+            # Add/update alias
+            aliases[user_id_str][alias.lower()] = path
+            
+            # Save updated aliases
+            with open(self.file_aliases_file, 'w') as f:
+                json.dump(aliases, f, indent=2)
+                
+        except Exception as e:
+            print(f"Error adding file alias: {e}")
     
     def get_file_aliases(self, user_id):
         """Get user's file aliases"""
-        conn = sqlite3.connect(self.db_path)
-        cursor = conn.cursor()
-        
-        cursor.execute('SELECT alias, path FROM file_aliases WHERE user_id = ?', (user_id,))
-        results = cursor.fetchall()
-        conn.close()
-        return dict(results)
+        try:
+            # Load aliases
+            with open(self.file_aliases_file, 'r') as f:
+                aliases = json.load(f)
+            
+            # Get user's aliases
+            user_id_str = str(user_id)
+            return aliases.get(user_id_str, {})
+            
+        except Exception as e:
+            print(f"Error getting file aliases: {e}")
+            return {}
 
 # Global database instance
 db = DatabaseManager()

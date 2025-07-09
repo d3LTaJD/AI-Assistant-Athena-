@@ -4,12 +4,9 @@ Advanced Features: Image Generation, Code Generation, and Automated Tasks
 import os
 import time
 import threading
-import requests
 import json
 from datetime import datetime, timedelta
 from pathlib import Path
-import subprocess
-import webbrowser
 
 class AdvancedFeatures:
     def __init__(self, voice_handler, config):

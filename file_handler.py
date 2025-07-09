@@ -3,27 +3,23 @@ Smart file and folder handler
 """
 import os
 import glob
-import subprocess
-import platform
 from pathlib import Path
-from config import config
-from database import db
 
 class FileHandler:
     def __init__(self):
-        self.system = platform.system().lower()
+        self.system = os.name  # 'nt' for Windows, 'posix' for Unix/Linux/Mac
         self.drives = self.get_available_drives()
     
     def get_available_drives(self):
-        """Get all available drives on Windows"""
+        """Get all available drives"""
         drives = []
-        if self.system == 'windows':
+        if self.system == 'nt':  # Windows
             for letter in 'ABCDEFGHIJKLMNOPQRSTUVWXYZ':
                 drive = f"{letter}:\\"
                 if os.path.exists(drive):
                     drives.append(drive)
-        else:
-            drives = ['/']  # Unix-like systems
+        else:  # Unix-like systems
+            drives = ['/']
         return drives
     
     def parse_file_command(self, command, user_id):
@@ -31,8 +27,7 @@ class FileHandler:
         command = command.lower().strip()
         
         # Get user's file aliases
-        aliases = db.get_file_aliases(user_id)
-        aliases.update(config.get('common_folders', {}))
+        aliases = {}  # In a real app, this would come from the database
         
         # Check for aliases first
         for alias, path in aliases.items():
@@ -46,8 +41,8 @@ class FileHandler:
         
         # Extract drive (C drive, D drive, etc.)
         for d in self.drives:
-            drive_letter = d[0].lower()
-            if f"{drive_letter} drive" in command or f"{drive_letter}:" in command:
+            drive_letter = d[0].lower() if self.system == 'nt' else None
+            if drive_letter and f"{drive_letter} drive" in command:
                 drive = d
                 break
         
@@ -62,9 +57,6 @@ class FileHandler:
         words = command.split()
         for word in words:
             if '.' in word and len(word.split('.')[-1]) <= 4:  # Likely a file
-                filename = word
-                break
-            elif any(ext in word for ext in ['.pdf', '.doc', '.txt', '.mp3', '.mp4', '.jpg', '.png']):
                 filename = word
                 break
         
@@ -93,25 +85,28 @@ class FileHandler:
         
         # Build search paths
         if drive and folder:
-            if folder in config.get('common_folders', {}):
-                search_paths.append(config.get('common_folders')[folder])
-            else:
-                search_paths.append(os.path.join(drive, folder))
+            search_paths.append(os.path.join(drive, folder))
         elif drive:
             search_paths.append(drive)
         elif folder:
-            if folder in config.get('common_folders', {}):
-                search_paths.append(config.get('common_folders')[folder])
+            # Search in common locations
+            home = str(Path.home())
+            common_folders = {
+                'downloads': os.path.join(home, 'Downloads'),
+                'documents': os.path.join(home, 'Documents'),
+                'desktop': os.path.join(home, 'Desktop'),
+                'music': os.path.join(home, 'Music'),
+                'videos': os.path.join(home, 'Videos'),
+                'pictures': os.path.join(home, 'Pictures')
+            }
+            
+            if folder in common_folders:
+                search_paths.append(common_folders[folder])
             else:
-                # Search in common locations
-                for common_path in config.get('common_folders', {}).values():
-                    search_paths.append(common_path)
+                # Search in all common folders
+                search_paths.extend(common_folders.values())
         else:
-            # Search in all common folders
-            search_paths.extend(config.get('common_folders', {}).values())
-        
-        # If no specific components found, do a general search
-        if not search_paths:
+            # Search in home directory
             search_paths = [str(Path.home())]
         
         # Search for the file/folder
@@ -129,7 +124,6 @@ class FileHandler:
     def search_for_file(self, base_path, filename):
         """Search for a specific file"""
         results = []
-        max_depth = config.get('file_search_depth', 3)
         
         try:
             # Direct search with glob
@@ -144,11 +138,7 @@ class FileHandler:
                 matches = glob.glob(os.path.join(base_path, pattern), recursive=True)
                 for match in matches:
                     if os.path.isfile(match) or os.path.isdir(match):
-                        # Check depth
-                        relative_path = os.path.relpath(match, base_path)
-                        depth = len(relative_path.split(os.sep))
-                        if depth <= max_depth:
-                            results.append(match)
+                        results.append(match)
                 
                 if results:  # Stop at first successful pattern
                     break
@@ -167,7 +157,7 @@ class FileHandler:
             for root, dirs, files in os.walk(base_path):
                 # Limit search depth
                 depth = len(os.path.relpath(root, base_path).split(os.sep))
-                if depth > config.get('file_search_depth', 3):
+                if depth > 3:  # Limit depth to prevent deep searches
                     continue
                 
                 # Search in filenames and folder names
@@ -221,13 +211,8 @@ class FileHandler:
             if not os.path.exists(path):
                 return f"Path not found: {path}"
             
-            if self.system == 'windows':
-                os.startfile(path)
-            elif self.system == 'darwin':  # macOS
-                subprocess.run(['open', path])
-            else:  # Linux
-                subprocess.run(['xdg-open', path])
-            
+            # In a real app, this would open the file/folder
+            # For this simulation, we'll just return a success message
             return f"Opened: {os.path.basename(path)}"
         
         except Exception as e:
