@@ -1,0 +1,12 @@
+# J.A.R.V.I.S. AI Assistant Requirements
+# Minimal dependencies for maximum compatibility
+
+# Core dependencies
+pyttsx3==2.90
+requests==2.31.0
+
+# Optional dependencies (uncomment if needed)
+# pyaudio==0.2.13  # For voice recognition (requires additional setup)
+# SpeechRecognition==3.10.0  # For voice recognition
+# numpy==1.24.3  # For advanced calculations
+# pillow==10.1.0  # For image processing
